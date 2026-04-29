@@ -1,0 +1,188 @@
+@import url('https://fonts.googleapis.com/css2?family=Madimi+One&family=Pacifico&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
+
+img{
+    width: 100%;
+}
+header {
+    /* background-color: #FE4B4B; */
+    padding-left: 10px;
+    /* text-align: center; */
+    font-size: 50px;
+    font-family: "Pacifico", cursive;
+    color: #FAFAFA;
+    text-shadow: 0 0 30px black;
+    /* padding-top: 300px; */
+}
+footer {
+    /* background-color: #CACACA; */
+    /* background-image: url("https://www.nippon.com/en/ncommon/contents/japan-data/138488/138488.jpg");
+    background-size: 100px; */
+    background: left/100px url("https://img.freepik.com/free-vector/flat-design-japanese-wave-pattern_23-2149531040.jpg"), #CACACA;
+    /* text-align: center; */
+    font-size: 15px;
+    margin-top: 25px;
+    padding: 10px;
+}
+h1 {
+    font-size: 50px;
+    color: olivedrab;
+    /* text-transform: uppercase; */
+    /* text-decoration-line: underline; */
+    /* font-family: "Roboto", sans-serif; */
+    font-family: "Madimi One", sans-serif;
+    margin: 40px 0 10px 0;
+    text-align: center;
+}
+h2 {
+    font-size: 30px;
+    color: brown;
+    /* text-transform: uppercase; */
+    font-weight: bold;
+    /* text-decoration-line: underline; */
+    /* font-family: "Pacifico", cursive; */
+    font-family: "Madimi One", sans-serif;
+    margin: 0.83em 0 0 0;
+}
+h3, h4, h5, h6 {
+    font-size: 15px;
+    color: darkcyan;
+    margin: 0;
+    padding: 5;
+}
+nav a, nav li{
+    color: orangered;
+}
+body {
+    background-color: lightcyan;
+    /* color: rgb(77, 2, 2); */
+    /*font-family: "Times New Roman", Times, serif;*/
+    /* font-family: Arial, Helvetica, sans-serif; */
+    font-family: "Roboto", sans-serif;
+    margin: 0;
+} 
+ul{
+    margin: 5px 0 0 0;
+    padding: 0;
+    list-style-type: none;
+    display: flex;
+    gap: 15px;
+}
+div {
+    margin: 5px 0 0 0;
+    padding: 0 0 0 10px;
+}
+
+a{
+    text-decoration: none;
+}
+#mot {
+    color: pink;
+    font-weight: bold;
+    font-style: italic;
+}
+#bienvenue {
+    background-image: url("../images/japon.jpg");
+    background-repeat: no-repeat;
+    background-size: cover;
+    height: 100vh;
+    display: flex;
+    /* justify-content: center; */
+    align-items: center;
+    flex-direction: row;
+}
+#slogan {
+    display: block;
+    font-size: 25px;
+    font-family: "Roboto", sans-serif;
+}
+#top {
+    font-size: 18px;
+    color: rgb(1, 115, 113);
+    font-family: "Roboto", sans-serif;
+    text-align: center;
+    margin-bottom: 40px;
+}
+#tokyo {
+    background-image: url("https://media.vogue.fr/photos/5e28668feba60700084eac83/4:3/w_4776,h_3582,c_limit/GettyImages-893365942.jpg");
+    grid-row: 1 / 3;
+}
+#kyoto {
+    background-image: url("https://images.ctfassets.net/bth3mlrehms2/1i0vZWcD587SaN9Udo6sf5/f2f82a33415bcb5381b1169ef0dc9070/Japan_Kyoto_Un_cerisier_en_fleur_dans_une_rue_de_Kyoto.jpg?w=3863&h=2172&fl=progressive&q=50&fm=jpg");  
+    grid-column: 2 / 4;
+}
+#osaka {
+    background-image: url("https://upload.wikimedia.org/wikipedia/commons/c/ca/Osaka_Castle_03bs3200.jpg");
+    
+}
+#nara {
+    /* background-image: url("https://youinjapan.net/yokohama/pics/yokohama-cover.jpg"); */
+    background-image: url("https://photo.comptoir.fr/asset/guide/1759/614217-1260x630-temple-de-todai-ji-nara-region-du-kansai-japon.jpg");
+    /* grid-column: 1 / 3; */
+}
+#flexbox-ville {
+    /* display: flex; */
+    display: grid;
+    grid-template-columns:  repeat(3, 1fr);
+    gap: 50px;
+}
+#voir {
+    display: inline-flex;
+    color: #FF7373;
+    align-items: center;
+    transition: all 0.5s;
+    gap: 0;
+}
+#voir:hover {
+    gap: 10px;
+}
+.ville {
+    background-size: cover;
+    width: 100%;
+    height: 100%;
+    min-height: 350px;
+    border-radius: 15px;
+    border: 4px solid lightcyan;
+    transition: all 0.3s;
+    /* cursor: pointer; */
+    font-size: 40px;
+    font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    color: #FAFAFA;
+    text-shadow: 0 0 30px black;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.ville:hover {
+    border: 4px solid #FF7373;
+}
+.contenu {
+    padding: 10px;
+}
+.conteneur {
+    width: 1200px;
+    margin: 0 auto;
+}
+.domaine{
+    /* text-transform: uppercase; */
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    font-weight: bold;
+    color: brown;
+}
+.copy {
+    font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+}
+.para {
+    padding: 5 0;
+    margin: 5 0;
+    text-align: justify;
+}
+.pied {
+    display: block;
+    font-size: 14px;
+    font-family: "Roboto", sans-serif;
+    /* text-align: center; */
+}
+
+/* RESPONSIVE DESIGN */
+
+@media 
