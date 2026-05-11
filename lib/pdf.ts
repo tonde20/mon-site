@@ -15,33 +15,27 @@ const BORDER      = [209, 213, 219] as [number,number,number];  // #d1d5db
 function addHeader(doc: jsPDF, etablissement: string, titre: string, sousTitre?: string) {
   const w = doc.internal.pageSize.getWidth();
 
-  // Bande verte en haut
   doc.setFillColor(...GREEN);
   doc.rect(0, 0, w, 28, 'F');
 
-  // Nom établissement
   doc.setTextColor(...WHITE);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
   doc.text(etablissement.toUpperCase(), w / 2, 11, { align: 'center' });
 
-  // Titre du document
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.text(titre, w / 2, 19, { align: 'center' });
 
-  // Sous-titre
   if (sousTitre) {
     doc.setFontSize(8);
     doc.setTextColor(...GRAY_MID);
     doc.text(sousTitre, w / 2, 26, { align: 'center' });
   }
 
-  // Ligne de séparation
   doc.setDrawColor(...BORDER);
   doc.setLineWidth(0.3);
   doc.line(14, 32, w - 14, 32);
-
   doc.setTextColor(...GRAY_DARK);
 }
 
@@ -58,37 +52,30 @@ function addFooter(doc: jsPDF, etablissement: string) {
     doc.setTextColor(...GRAY_MID);
     doc.text(etablissement, 14, h - 8);
     doc.text(`Page ${i} / ${pageCount}`, w - 14, h - 8, { align: 'right' });
-    doc.text(`Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`, w / 2, h - 8, { align: 'center' });
+    doc.text(
+      `Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`,
+      w / 2, h - 8, { align: 'center' }
+    );
   }
 }
 
-// ── ORDONNANCE ────────────────────────────────────────────
-export function genererOrdonnance(opts: {
-  etablissement: string;
-  patient: { prenom: string; nom: string; code: string; date_naissance?: string; sexe?: string };
-  consultation: {
-    date: string; valide_jusqu: string; motif?: string; diagnostic?: string;
-    tension?: string; temperature?: string; poids?: string;
-    doctor_prenom: string; doctor_nom: string;
-    prescriptions: { medicament: string; posologie?: string; duree?: string }[];
-    examens: { type_examen: string; description?: string }[];
-  };
-}) {
-  const { etablissement, patient, consultation } = opts;
-  const doc = new jsPDF('p', 'mm', 'a4');
+type PatientInfo = {
+  prenom: string; nom: string; code: string; date_naissance?: string; sexe?: string;
+};
+type ConsultInfo = {
+  date: string; valide_jusqu: string; motif?: string; diagnostic?: string;
+  tension?: string; temperature?: string; poids?: string; taille?: string;
+  doctor_prenom: string; doctor_nom: string;
+  prescriptions: { medicament: string; posologie?: string; duree?: string }[];
+  examens: { type_examen: string; description?: string }[];
+};
+
+function addPatientDoctorHeader(doc: jsPDF, patient: PatientInfo, consultation: ConsultInfo, y: number): number {
   const w = doc.internal.pageSize.getWidth();
-
-  addHeader(doc, etablissement, 'ORDONNANCE MÉDICALE',
-    `Dr. ${consultation.doctor_prenom} ${consultation.doctor_nom} — ${new Date(consultation.date).toLocaleDateString('fr-FR')}`);
-
-  let y = 37;
-
-  // ── Bloc patient / médecin ───────────────────────────────
   const colW = (w - 28) / 2;
-  // Fond gauche (patient)
+
   doc.setFillColor(...GREEN_LIGHT);
   doc.roundedRect(14, y, colW - 2, 26, 2, 2, 'F');
-  // Fond droit (médecin)
   doc.setFillColor(...TEAL_LIGHT);
   doc.roundedRect(14 + colW + 2, y, colW - 2, 26, 2, 2, 'F');
 
@@ -119,44 +106,23 @@ export function genererOrdonnance(opts: {
   doc.text(`Date : ${new Date(consultation.date).toLocaleDateString('fr-FR')}`, 18 + colW + 6, y + 19);
   doc.text(`Valide jusqu'au : ${new Date(consultation.valide_jusqu).toLocaleDateString('fr-FR')}`, 18 + colW + 6, y + 24);
 
-  y += 32;
+  return y + 32;
+}
 
-  // ── Constantes vitales ───────────────────────────────────
-  const { tension, temperature, poids } = consultation;
-  if (tension || temperature || poids) {
-    const items = [
-      tension      && `TA : ${tension}`,
-      temperature  && `T° : ${temperature}°C`,
-      poids        && `Poids : ${poids} kg`,
-    ].filter(Boolean) as string[];
-    const cw = (w - 28) / items.length;
-    items.forEach((item, i) => {
-      doc.setFillColor(...GRAY_LIGHT);
-      doc.roundedRect(14 + i * cw, y, cw - 2, 10, 1, 1, 'F');
-      doc.setFontSize(8.5);
-      doc.setTextColor(...GRAY_DARK);
-      doc.setFont('helvetica', 'bold');
-      doc.text(item, 14 + i * cw + (cw - 2) / 2, y + 6.5, { align: 'center' });
-    });
-    y += 15;
-  }
+// ── ORDONNANCE (prescriptions uniquement) ─────────────────
+export function genererOrdonnance(opts: {
+  etablissement: string;
+  patient: PatientInfo;
+  consultation: ConsultInfo;
+}) {
+  const { etablissement, patient, consultation } = opts;
+  const doc = new jsPDF('p', 'mm', 'a4');
 
-  // ── Diagnostic / Motif ───────────────────────────────────
-  if (consultation.diagnostic || consultation.motif) {
-    doc.setFillColor(...GRAY_LIGHT);
-    doc.roundedRect(14, y, w - 28, 12, 2, 2, 'F');
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...GREEN);
-    doc.text('DIAGNOSTIC', 18, y + 5);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...GRAY_DARK);
-    doc.setFontSize(9);
-    doc.text(consultation.diagnostic || consultation.motif || '', 18, y + 10);
-    y += 17;
-  }
+  addHeader(doc, etablissement, 'ORDONNANCE MÉDICALE',
+    `Dr. ${consultation.doctor_prenom} ${consultation.doctor_nom} — ${new Date(consultation.date).toLocaleDateString('fr-FR')}`);
 
-  // ── Prescriptions ────────────────────────────────────────
+  let y = addPatientDoctorHeader(doc, patient, consultation, 37);
+
   if (consultation.prescriptions.length > 0) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
@@ -182,9 +148,43 @@ export function genererOrdonnance(opts: {
       theme: 'grid',
     });
     y = (doc as any).lastAutoTable.finalY + 6;
+  } else {
+    doc.setFontSize(9);
+    doc.setTextColor(...GRAY_MID);
+    doc.text('Aucune prescription pour cette consultation.', 14, y + 6);
+    y += 14;
   }
 
-  // ── Examens ──────────────────────────────────────────────
+  // Zone signature
+  const ph = doc.internal.pageSize.getHeight();
+  const sigY = Math.max(y + 10, ph - 50);
+  doc.setDrawColor(...BORDER);
+  doc.setLineWidth(0.3);
+  const w = doc.internal.pageSize.getWidth();
+  doc.line(w - 80, sigY, w - 14, sigY);
+  doc.setFontSize(8);
+  doc.setTextColor(...GRAY_MID);
+  doc.text(`Dr. ${consultation.doctor_prenom} ${consultation.doctor_nom}`, w - 47, sigY + 5, { align: 'center' });
+  doc.text('Signature et cachet', w - 47, sigY + 10, { align: 'center' });
+
+  addFooter(doc, etablissement);
+  doc.save(`Ordonnance_${patient.code}_${new Date().toISOString().split('T')[0]}.pdf`);
+}
+
+// ── DEMANDE D'EXAMENS ─────────────────────────────────────
+export function genererExamens(opts: {
+  etablissement: string;
+  patient: PatientInfo;
+  consultation: ConsultInfo;
+}) {
+  const { etablissement, patient, consultation } = opts;
+  const doc = new jsPDF('p', 'mm', 'a4');
+
+  addHeader(doc, etablissement, "DEMANDE D'EXAMENS COMPLÉMENTAIRES",
+    `Dr. ${consultation.doctor_prenom} ${consultation.doctor_nom} — ${new Date(consultation.date).toLocaleDateString('fr-FR')}`);
+
+  let y = addPatientDoctorHeader(doc, patient, consultation, 37);
+
   if (consultation.examens.length > 0) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
@@ -194,7 +194,7 @@ export function genererOrdonnance(opts: {
 
     autoTable(doc, {
       startY: y,
-      head: [['#', 'Type d\'examen', 'Précisions']],
+      head: [['#', "Type d'examen", 'Précisions / Indications']],
       body: consultation.examens.map((e, i) => [
         String(i + 1), e.type_examen, e.description || '—',
       ]),
@@ -206,13 +206,18 @@ export function genererOrdonnance(opts: {
       theme: 'grid',
     });
     y = (doc as any).lastAutoTable.finalY + 6;
+  } else {
+    doc.setFontSize(9);
+    doc.setTextColor(...GRAY_MID);
+    doc.text('Aucun examen prescrit pour cette consultation.', 14, y + 6);
+    y += 14;
   }
 
-  // ── Zone signature ───────────────────────────────────────
   const ph = doc.internal.pageSize.getHeight();
   const sigY = Math.max(y + 10, ph - 50);
   doc.setDrawColor(...BORDER);
   doc.setLineWidth(0.3);
+  const w = doc.internal.pageSize.getWidth();
   doc.line(w - 80, sigY, w - 14, sigY);
   doc.setFontSize(8);
   doc.setTextColor(...GRAY_MID);
@@ -220,14 +225,20 @@ export function genererOrdonnance(opts: {
   doc.text('Signature et cachet', w - 47, sigY + 10, { align: 'center' });
 
   addFooter(doc, etablissement);
-  doc.save(`Ordonnance_${patient.code}_${new Date().toISOString().split('T')[0]}.pdf`);
+  doc.save(`Examens_${patient.code}_${new Date().toISOString().split('T')[0]}.pdf`);
 }
 
 // ── CERTIFICAT ────────────────────────────────────────────
 export function genererCertificat(opts: {
   etablissement: string;
-  patient: { prenom: string; nom: string; code: string; date_naissance?: string; sexe?: string };
-  certificat: { type: string; contenu?: string; date: string; doctor_prenom: string; doctor_nom: string };
+  patient: PatientInfo;
+  certificat: {
+    type: string;
+    contenu: string;
+    date: string;
+    doctor_prenom: string;
+    doctor_nom: string;
+  };
 }) {
   const { etablissement, patient, certificat } = opts;
   const doc = new jsPDF('p', 'mm', 'a4');
@@ -236,69 +247,73 @@ export function genererCertificat(opts: {
   addHeader(doc, etablissement, `CERTIFICAT ${certificat.type.toUpperCase()}`,
     new Date(certificat.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }));
 
-  let y = 40;
+  let y = 36;
 
-  // Cadre principal
-  doc.setDrawColor(...GREEN);
-  doc.setLineWidth(0.8);
-  doc.roundedRect(14, y, w - 28, 150, 3, 3, 'S');
-  y += 12;
-
-  // Intro
-  const age = patient.date_naissance
-    ? Math.floor((Date.now() - new Date(patient.date_naissance).getTime()) / (365.25*24*3600*1000))
-    : null;
-  const civilite = patient.sexe === 'F' ? 'Madame' : 'Monsieur';
-
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(...GRAY_DARK);
-  const intro = `Je soussigné(e), Dr. ${certificat.doctor_prenom} ${certificat.doctor_nom}, médecin au ${etablissement},`;
-  doc.text(intro, w / 2, y, { align: 'center' });
-  y += 8;
-  const certifie = `certifie avoir examiné ce jour ${civilite} ${patient.prenom} ${patient.nom}${age ? `, âgé(e) de ${age} ans` : ''}.`;
-  doc.text(certifie, w / 2, y, { align: 'center' });
-  y += 12;
-
-  // Contenu
-  if (certificat.contenu) {
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    const lines = doc.splitTextToSize(certificat.contenu, w - 48);
-    doc.text(lines, 24, y);
-    y += lines.length * 6 + 10;
-  }
-
-  // Infos patient dans un tableau
+  // ── Tableau patient ──────────────────────────────────────
   autoTable(doc, {
     startY: y,
     head: [['Champ', 'Information']],
     body: [
       ['Nom complet', `${patient.prenom} ${patient.nom}`],
       ['Code patient', patient.code],
-      ...(patient.date_naissance ? [['Date de naissance', new Date(patient.date_naissance).toLocaleDateString('fr-FR')]] : []),
+      ...(patient.date_naissance
+        ? [['Date de naissance', new Date(patient.date_naissance).toLocaleDateString('fr-FR')]]
+        : []),
     ],
     styles: { fontSize: 9, cellPadding: 3, textColor: GRAY_DARK },
     headStyles: { fillColor: GREEN, textColor: WHITE, fontStyle: 'bold' },
     alternateRowStyles: { fillColor: GREEN_LIGHT },
-    columnStyles: { 0: { cellWidth: 50, fontStyle: 'bold' } },
-    margin: { left: 24, right: 24 },
+    columnStyles: { 0: { cellWidth: 45, fontStyle: 'bold' } },
+    margin: { left: 14, right: 14 },
     theme: 'grid',
   });
-  y = (doc as any).lastAutoTable.finalY + 20;
+  y = (doc as any).lastAutoTable.finalY + 10;
 
-  // Signature
+  // ── Contenu du certificat dans un cadre ──────────────────
+  const frameX = 14;
+  const frameW = w - 28;
+  const contentX = frameX + 8;
+  const contentW = frameW - 16;
+
+  // Calculer la hauteur du texte avec interligne 1.5
+  const fontSize = 10.5;
+  const lineHeightMm = fontSize * 1.5 / 2.834;
+  doc.setFontSize(fontSize);
+  doc.setLineHeightFactor(1.5);
+  const lines = doc.splitTextToSize(certificat.contenu || '', contentW);
+  const textHeight = lines.length * lineHeightMm;
+  const frameH = textHeight + 20;
+
+  // Dessiner le cadre
+  doc.setDrawColor(...GREEN);
+  doc.setLineWidth(0.6);
+  doc.roundedRect(frameX, y, frameW, frameH, 3, 3, 'S');
+
+  // Texte justifié dans le cadre
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...GRAY_DARK);
+  doc.text(lines, contentX, y + 12, { align: 'justify', maxWidth: contentW });
+  doc.setLineHeightFactor(1.15);
+
+  y += frameH + 16;
+
+  // ── Lieu et date ─────────────────────────────────────────
   doc.setFontSize(9.5);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...GRAY_DARK);
-  doc.text(`Fait à Boromo, le ${new Date(certificat.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}`, w - 24, y, { align: 'right' });
+  const lieu = `Fait à Boromo, le ${new Date(certificat.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}`;
+  doc.text(lieu, w - 14, y, { align: 'right' });
   y += 20;
+
+  // ── Zone signature ───────────────────────────────────────
   doc.setDrawColor(...BORDER);
-  doc.line(w - 80, y, w - 24, y);
+  doc.setLineWidth(0.3);
+  doc.line(w - 80, y, w - 14, y);
   doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
   doc.setTextColor(...GRAY_MID);
-  doc.text(`Dr. ${certificat.doctor_prenom} ${certificat.doctor_nom}`, w - 52, y + 5, { align: 'center' });
-  doc.text('Signature et cachet', w - 52, y + 10, { align: 'center' });
+  doc.text(`Dr. ${certificat.doctor_prenom} ${certificat.doctor_nom}`, w - 47, y + 5, { align: 'center' });
+  doc.text('Signature et cachet', w - 47, y + 10, { align: 'center' });
 
   addFooter(doc, etablissement);
   doc.save(`Certificat_${certificat.type}_${patient.code}_${new Date().toISOString().split('T')[0]}.pdf`);
@@ -325,7 +340,6 @@ export function genererRapportRecettes(opts: {
 
   let y = 36;
 
-  // ── Résumé financier ─────────────────────────────────────
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(...GREEN);
@@ -360,7 +374,6 @@ export function genererRapportRecettes(opts: {
   });
   y = (doc as any).lastAutoTable.finalY + 10;
 
-  // ── Détail des transactions ───────────────────────────────
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(...TEAL);

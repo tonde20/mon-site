@@ -20,6 +20,7 @@ export function getDb(): any {
     db.exec('PRAGMA journal_mode = WAL');
     db.exec('PRAGMA foreign_keys = ON');
     initSchema(db);
+    runMigrations(db);
     seedData(db);
   }
   return db;
@@ -136,6 +137,11 @@ function initSchema(db: any) {
       FOREIGN KEY (patient_id) REFERENCES patients(id)
     );
   `);
+}
+
+function runMigrations(db: any) {
+  // Colonnes ajoutées après la création initiale de la DB
+  try { db.exec("ALTER TABLE consultations ADD COLUMN taille TEXT"); } catch {}
 }
 
 function seedData(db: any) {

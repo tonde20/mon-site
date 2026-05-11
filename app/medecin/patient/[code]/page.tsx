@@ -1,19 +1,33 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { genererOrdonnance, genererCertificat } from "@/lib/pdf";
+import { genererOrdonnance, genererExamens, genererCertificat } from "@/lib/pdf";
 
 interface Prescription { id: number; medicament: string; posologie: string; duree: string; }
 interface Examen { id: number; type_examen: string; description: string; resultat: string; }
 interface Consultation {
   id: number; date: string; motif: string; diagnostic: string; notes: string;
-  tension: string; temperature: string; poids: string; valide_jusqu: string; montant: number;
+  tension: string; temperature: string; poids: string; taille: string; valide_jusqu: string; montant: number;
   doctor_nom: string; doctor_prenom: string;
   prescriptions: Prescription[]; examens: Examen[];
 }
 interface Patient {
   id: number; code: string; nom: string; prenom: string; date_naissance: string;
   sexe: string; telephone: string; adresse: string;
+}
+
+function calcIMC(poids: string, taille: string): string | null {
+  const p = parseFloat(poids);
+  const t = parseFloat(taille) / 100;
+  if (!p || !t || t <= 0) return null;
+  return (p / (t * t)).toFixed(1);
+}
+
+function imcLabel(imc: number): { label: string; color: string } {
+  if (imc < 18.5) return { label: 'Insuffisance pondérale', color: 'text-blue-600' };
+  if (imc < 25)   return { label: 'Corpulence normale', color: 'text-green-600' };
+  if (imc < 30)   return { label: 'Surpoids', color: 'text-amber-600' };
+  return { label: 'Obésité', color: 'text-red-600' };
 }
 
 export default function PatientDossierPage() {
@@ -28,11 +42,19 @@ export default function PatientDossierPage() {
   const [doctors, setDoctors] = useState<any[]>([]);
 
   const [consultForm, setConsultForm] = useState({
-    motif: "", diagnostic: "", notes: "", tension: "", temperature: "", poids: "",
+    motif: "", diagnostic: "", notes: "", tension: "", temperature: "", poids: "", taille: "",
     prescriptions: [{ medicament: "", posologie: "", duree: "" }],
     examens: [{ type_examen: "", description: "" }],
   });
-  const [certForm, setCertForm] = useState({ type: "Médical", contenu: "" });
+
+  const [certForm, setCertForm] = useState({
+    type: "Médical",
+    contenu: "",
+    nb_jours: "",
+    date_debut: "",
+    date_fin: "",
+  });
+
   const [rdvForm, setRdvForm] = useState({ doctor_id: "", date_heure: "", motif: "" });
 
   useEffect(() => {
@@ -68,37 +90,48 @@ export default function PatientDossierPage() {
       setActiveTab("dossier");
       const updated = await fetch(`/api/patients/${code}`);
       if (updated.ok) setData(await updated.json());
-      setConsultForm({ motif: "", diagnostic: "", notes: "", tension: "", temperature: "", poids: "", prescriptions: [{ medicament: "", posologie: "", duree: "" }], examens: [{ type_examen: "", description: "" }] });
+      setConsultForm({ motif: "", diagnostic: "", notes: "", tension: "", temperature: "", poids: "", taille: "", prescriptions: [{ medicament: "", posologie: "", duree: "" }], examens: [{ type_examen: "", description: "" }] });
     } else {
       setMessage({ type: "error", text: "Erreur lors de l'enregistrement" });
     }
   };
 
+  const buildCertContenu = (doctorName: string): string => {
+    if (certForm.type === "Repos") {
+      const civilite = data?.patient.sexe === 'F' ? 'Mme' : 'M.';
+      const dateJour = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+      const dateDebut = certForm.date_debut ? new Date(certForm.date_debut).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : '…';
+      const dateFin   = certForm.date_fin   ? new Date(certForm.date_fin).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : '…';
+      const nom = data ? `${data.patient.prenom} ${data.patient.nom}` : '';
+      return `Je soussigné(e), ${doctorName}, Docteur en médecine, certifie avoir examiné ce jour ${dateJour} ${civilite} ${nom}, présentant un état de santé nécessitant un repos médical de ${certForm.nb_jours || '…'} jour(s), à compter du ${dateDebut} jusqu'au ${dateFin} inclus. Le présent certificat est délivré à la demande de l'intéressé(e) pour servir et valoir ce que de droit.`;
+    }
+    return certForm.contenu;
+  };
+
   const handleCertificat = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!data) return;
+
+    const meRes = await fetch("/api/auth/me");
+    const { user } = await meRes.json();
+    const doctorName = user.nom.replace('Dr. ', '');
+    const doctor_prenom = doctorName.split(' ')[0];
+    const doctor_nom = doctorName.split(' ').slice(1).join(' ');
+    const contenu = buildCertContenu(`Dr. ${doctorName}`);
+
     const res = await fetch("/api/certificats", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ patient_id: data.patient.id, ...certForm }),
+      body: JSON.stringify({ patient_id: data.patient.id, type: certForm.type, contenu }),
     });
     if (res.ok) {
-      const respData = await res.json();
-      const meRes = await fetch("/api/auth/me");
-      const { user } = await meRes.json();
       setMessage({ type: "success", text: "Certificat créé. Génération du PDF..." });
       genererCertificat({
         etablissement,
         patient: data.patient,
-        certificat: {
-          type: certForm.type,
-          contenu: certForm.contenu,
-          date: new Date().toISOString(),
-          doctor_prenom: user.nom.replace('Dr. ', '').split(' ')[0],
-          doctor_nom: user.nom.replace('Dr. ', '').split(' ').slice(1).join(' '),
-        },
+        certificat: { type: certForm.type, contenu, date: new Date().toISOString(), doctor_prenom, doctor_nom },
       });
-      setCertForm({ type: "Médical", contenu: "" });
+      setCertForm({ type: "Médical", contenu: "", nb_jours: "", date_debut: "", date_fin: "" });
     } else {
       setMessage({ type: "error", text: "Erreur" });
     }
@@ -128,6 +161,9 @@ export default function PatientDossierPage() {
   const { patient, consultations, rendez_vous } = data;
   const age = patient.date_naissance ? Math.floor((Date.now() - new Date(patient.date_naissance).getTime()) / (365.25 * 24 * 3600 * 1000)) : null;
 
+  // IMC du formulaire en cours
+  const imcEnCours = calcIMC(consultForm.poids, consultForm.taille);
+
   const tabs = [
     { key: "dossier",    label: "Dossier médical",      icon: "📋" },
     { key: "nouvelle",   label: "Nouvelle consultation", icon: "✏️" },
@@ -155,11 +191,29 @@ export default function PatientDossierPage() {
               {selectedConsult.diagnostic && (
                 <div><p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Diagnostic</p><p className="text-gray-800 font-medium">{selectedConsult.diagnostic}</p></div>
               )}
-              {(selectedConsult.tension || selectedConsult.temperature || selectedConsult.poids) && (
-                <div className="grid grid-cols-3 gap-3">
-                  {selectedConsult.tension && <div className="bg-primary-50 p-3 rounded-xl text-center"><p className="text-xs text-primary-500 font-medium">Tension</p><p className="font-bold text-primary-800 mt-0.5">{selectedConsult.tension}</p></div>}
-                  {selectedConsult.temperature && <div className="bg-orange-50 p-3 rounded-xl text-center"><p className="text-xs text-orange-500 font-medium">Température</p><p className="font-bold text-orange-800 mt-0.5">{selectedConsult.temperature}°C</p></div>}
-                  {selectedConsult.poids && <div className="bg-blue-50 p-3 rounded-xl text-center"><p className="text-xs text-blue-500 font-medium">Poids</p><p className="font-bold text-blue-800 mt-0.5">{selectedConsult.poids} kg</p></div>}
+              {/* Constantes vitales */}
+              {(selectedConsult.tension || selectedConsult.temperature || selectedConsult.poids || selectedConsult.taille) && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Constantes vitales</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {selectedConsult.tension && <div className="bg-primary-50 p-3 rounded-xl text-center"><p className="text-xs text-primary-500 font-medium">Tension</p><p className="font-bold text-primary-800 mt-0.5">{selectedConsult.tension}</p></div>}
+                    {selectedConsult.temperature && <div className="bg-orange-50 p-3 rounded-xl text-center"><p className="text-xs text-orange-500 font-medium">Température</p><p className="font-bold text-orange-800 mt-0.5">{selectedConsult.temperature}°C</p></div>}
+                    {selectedConsult.poids && <div className="bg-blue-50 p-3 rounded-xl text-center"><p className="text-xs text-blue-500 font-medium">Poids</p><p className="font-bold text-blue-800 mt-0.5">{selectedConsult.poids} kg</p></div>}
+                    {selectedConsult.taille && <div className="bg-teal-50 p-3 rounded-xl text-center"><p className="text-xs text-teal-500 font-medium">Taille</p><p className="font-bold text-teal-800 mt-0.5">{selectedConsult.taille} cm</p></div>}
+                  </div>
+                  {/* IMC calculé */}
+                  {selectedConsult.poids && selectedConsult.taille && (() => {
+                    const imc = calcIMC(selectedConsult.poids, selectedConsult.taille);
+                    if (!imc) return null;
+                    const { label, color } = imcLabel(parseFloat(imc));
+                    return (
+                      <div className="mt-2 flex items-center gap-2 bg-gray-50 px-4 py-2.5 rounded-xl">
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">IMC</span>
+                        <span className={`font-bold text-lg ${color}`}>{imc}</span>
+                        <span className={`text-sm ${color}`}>— {label}</span>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
               {selectedConsult.prescriptions.length > 0 && (
@@ -190,15 +244,26 @@ export default function PatientDossierPage() {
                 </div>
               )}
             </div>
-            <div className="p-4 border-t border-gray-100 flex gap-3 bg-gray-50 rounded-b-2xl">
-              <button
-                onClick={() => genererOrdonnance({ etablissement, patient, consultation: selectedConsult })}
-                className="btn-primary text-sm flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                Télécharger l'ordonnance PDF
-              </button>
-              <button onClick={() => setSelectedConsult(null)} className="btn-secondary text-sm">Fermer</button>
+            <div className="p-4 border-t border-gray-100 flex flex-wrap gap-2 bg-gray-50 rounded-b-2xl">
+              {selectedConsult.prescriptions.length > 0 && (
+                <button
+                  onClick={() => genererOrdonnance({ etablissement, patient, consultation: selectedConsult })}
+                  className="btn-primary text-sm flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                  Ordonnance PDF
+                </button>
+              )}
+              {selectedConsult.examens.length > 0 && (
+                <button
+                  onClick={() => genererExamens({ etablissement, patient, consultation: selectedConsult })}
+                  className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors shadow-sm"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                  Demande d'examens PDF
+                </button>
+              )}
+              <button onClick={() => setSelectedConsult(null)} className="btn-secondary text-sm ml-auto">Fermer</button>
             </div>
           </div>
         </div>
@@ -213,7 +278,7 @@ export default function PatientDossierPage() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-800">{patient.prenom} {patient.nom}</h1>
-              <div className="flex flex-wrap gap-3 mt-1 text-sm text-gray-500">
+              <div className="flex flex-wrap gap-2 mt-1 text-sm text-gray-500">
                 <span className="font-mono text-primary-700 font-semibold bg-primary-100 px-2 py-0.5 rounded">{patient.code}</span>
                 {age && <span className="bg-white px-2 py-0.5 rounded border border-gray-200">{age} ans</span>}
                 <span className="bg-white px-2 py-0.5 rounded border border-gray-200">{patient.sexe === "M" ? "Masculin" : "Féminin"}</span>
@@ -266,6 +331,13 @@ export default function PatientDossierPage() {
                   </div>
                   {c.motif && <p className="text-sm text-gray-500">Motif : {c.motif}</p>}
                   {c.diagnostic && <p className="text-sm text-gray-700 font-medium">Diagnostic : {c.diagnostic}</p>}
+                  {/* IMC résumé dans la carte */}
+                  {c.poids && c.taille && (() => {
+                    const imc = calcIMC(c.poids, c.taille);
+                    if (!imc) return null;
+                    const { label, color } = imcLabel(parseFloat(imc));
+                    return <p className={`text-xs mt-1 ${color}`}>IMC {imc} — {label}</p>;
+                  })()}
                   <div className="flex gap-2 mt-2">
                     {c.prescriptions.length > 0 && <span className="text-xs bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full font-medium">{c.prescriptions.length} prescription(s)</span>}
                     {c.examens.length > 0 && <span className="text-xs bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full font-medium">{c.examens.length} examen(s)</span>}
@@ -301,16 +373,46 @@ export default function PatientDossierPage() {
       {activeTab === "nouvelle" && (
         <form onSubmit={handleNewConsultation} className="space-y-5 max-w-3xl">
           <div className="card">
-            <h3 className="font-semibold text-gray-700 mb-4 flex items-center gap-2"><span className="w-6 h-6 bg-primary-100 text-primary-700 rounded-full flex items-center justify-center text-xs font-bold">1</span>Constantes vitales</h3>
-            <div className="grid grid-cols-3 gap-4">
-              <div><label className="block text-xs font-medium text-gray-600 mb-1.5">Tension artérielle</label><input type="text" value={consultForm.tension} onChange={e => setConsultForm(f => ({ ...f, tension: e.target.value }))} className="input-field" placeholder="120/80 mmHg" /></div>
-              <div><label className="block text-xs font-medium text-gray-600 mb-1.5">Température (°C)</label><input type="text" value={consultForm.temperature} onChange={e => setConsultForm(f => ({ ...f, temperature: e.target.value }))} className="input-field" placeholder="37.5" /></div>
-              <div><label className="block text-xs font-medium text-gray-600 mb-1.5">Poids (kg)</label><input type="text" value={consultForm.poids} onChange={e => setConsultForm(f => ({ ...f, poids: e.target.value }))} className="input-field" placeholder="65" /></div>
+            <h3 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
+              <span className="w-6 h-6 bg-primary-100 text-primary-700 rounded-full flex items-center justify-center text-xs font-bold">1</span>
+              Constantes vitales
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">Tension artérielle</label>
+                <input type="text" value={consultForm.tension} onChange={e => setConsultForm(f => ({ ...f, tension: e.target.value }))} className="input-field" placeholder="120/80 mmHg" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">Température (°C)</label>
+                <input type="text" value={consultForm.temperature} onChange={e => setConsultForm(f => ({ ...f, temperature: e.target.value }))} className="input-field" placeholder="37.5" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">Poids (kg)</label>
+                <input type="text" value={consultForm.poids} onChange={e => setConsultForm(f => ({ ...f, poids: e.target.value }))} className="input-field" placeholder="65" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">Taille (cm)</label>
+                <input type="text" value={consultForm.taille} onChange={e => setConsultForm(f => ({ ...f, taille: e.target.value }))} className="input-field" placeholder="170" />
+              </div>
             </div>
+            {imcEnCours && (() => {
+              const imcVal = parseFloat(imcEnCours);
+              const { label, color } = imcLabel(imcVal);
+              return (
+                <div className="flex items-center gap-3 bg-gray-50 px-4 py-2.5 rounded-xl mt-1">
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">IMC calculé</span>
+                  <span className={`font-bold text-xl ${color}`}>{imcEnCours}</span>
+                  <span className={`text-sm font-medium ${color}`}>— {label}</span>
+                </div>
+              );
+            })()}
           </div>
 
           <div className="card">
-            <h3 className="font-semibold text-gray-700 mb-4 flex items-center gap-2"><span className="w-6 h-6 bg-primary-100 text-primary-700 rounded-full flex items-center justify-center text-xs font-bold">2</span>Consultation</h3>
+            <h3 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
+              <span className="w-6 h-6 bg-primary-100 text-primary-700 rounded-full flex items-center justify-center text-xs font-bold">2</span>
+              Consultation
+            </h3>
             <div className="space-y-3">
               <div><label className="block text-xs font-medium text-gray-600 mb-1.5">Motif</label><input type="text" value={consultForm.motif} onChange={e => setConsultForm(f => ({ ...f, motif: e.target.value }))} className="input-field" placeholder="Fièvre, douleur..." /></div>
               <div><label className="block text-xs font-medium text-gray-600 mb-1.5">Diagnostic</label><input type="text" value={consultForm.diagnostic} onChange={e => setConsultForm(f => ({ ...f, diagnostic: e.target.value }))} className="input-field" placeholder="Paludisme, grippe..." /></div>
@@ -320,7 +422,10 @@ export default function PatientDossierPage() {
 
           <div className="card">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-gray-700 flex items-center gap-2"><span className="w-6 h-6 bg-primary-100 text-primary-700 rounded-full flex items-center justify-center text-xs font-bold">3</span>Prescriptions</h3>
+              <h3 className="font-semibold text-gray-700 flex items-center gap-2">
+                <span className="w-6 h-6 bg-primary-100 text-primary-700 rounded-full flex items-center justify-center text-xs font-bold">3</span>
+                Prescriptions
+              </h3>
               <button type="button" onClick={() => setConsultForm(f => ({ ...f, prescriptions: [...f.prescriptions, { medicament: "", posologie: "", duree: "" }] }))} className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">+ Ajouter</button>
             </div>
             <div className="space-y-2">
@@ -337,7 +442,10 @@ export default function PatientDossierPage() {
 
           <div className="card">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-gray-700 flex items-center gap-2"><span className="w-6 h-6 bg-teal-100 text-teal-700 rounded-full flex items-center justify-center text-xs font-bold">4</span>Examens demandés</h3>
+              <h3 className="font-semibold text-gray-700 flex items-center gap-2">
+                <span className="w-6 h-6 bg-teal-100 text-teal-700 rounded-full flex items-center justify-center text-xs font-bold">4</span>
+                Examens demandés
+              </h3>
               <button type="button" onClick={() => setConsultForm(f => ({ ...f, examens: [...f.examens, { type_examen: "", description: "" }] }))} className="text-sm text-teal-600 hover:text-teal-700 font-medium">+ Ajouter</button>
             </div>
             <div className="space-y-2">
@@ -370,15 +478,40 @@ export default function PatientDossierPage() {
                   <option value="Médical">Certificat médical</option>
                   <option value="Aptitude">Certificat d'aptitude</option>
                   <option value="Inaptitude">Certificat d'inaptitude</option>
-                  <option value="Décès">Certificat de décès</option>
-                  <option value="Grossesse">Certificat de grossesse</option>
                   <option value="Repos">Certificat de repos</option>
+                  <option value="Grossesse">Certificat de grossesse</option>
+                  <option value="Décès">Certificat de décès</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Contenu du certificat</label>
-                <textarea value={certForm.contenu} onChange={e => setCertForm(f => ({ ...f, contenu: e.target.value }))} className="input-field h-32 resize-none" placeholder="Détails du certificat..." />
-              </div>
+
+              {certForm.type === "Repos" ? (
+                <div className="space-y-3">
+                  <div className="bg-primary-50 border border-primary-100 rounded-xl p-4">
+                    <p className="text-xs font-semibold text-primary-700 uppercase tracking-wide mb-3">Paramètres du repos médical</p>
+                    <div className="grid grid-cols-3 gap-3 mb-3">
+                      <div className="col-span-3 sm:col-span-1">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Nombre de jours *</label>
+                        <input type="number" min="1" value={certForm.nb_jours} onChange={e => setCertForm(f => ({ ...f, nb_jours: e.target.value }))} className="input-field" placeholder="3" required />
+                      </div>
+                      <div className="col-span-3 sm:col-span-1">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Date de début *</label>
+                        <input type="date" value={certForm.date_debut} onChange={e => setCertForm(f => ({ ...f, date_debut: e.target.value }))} className="input-field" required />
+                      </div>
+                      <div className="col-span-3 sm:col-span-1">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Date de fin *</label>
+                        <input type="date" value={certForm.date_fin} onChange={e => setCertForm(f => ({ ...f, date_fin: e.target.value }))} className="input-field" required />
+                      </div>
+                    </div>
+                    <p className="text-xs text-primary-600">Le texte standardisé du certificat sera généré automatiquement.</p>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Contenu du certificat</label>
+                  <textarea value={certForm.contenu} onChange={e => setCertForm(f => ({ ...f, contenu: e.target.value }))} className="input-field h-36 resize-none" placeholder="Texte du certificat médical..." required />
+                </div>
+              )}
+
               <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-700">
                 <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 Frais de certificat : 2 000 FCFA — Le PDF sera téléchargé automatiquement.

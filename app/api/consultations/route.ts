@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   if (!session || session.role !== 'medecin') {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
   }
-  const { patient_id, motif, diagnostic, notes, tension, temperature, poids, prescriptions, examens } = await req.json();
+  const { patient_id, motif, diagnostic, notes, tension, temperature, poids, taille, prescriptions, examens } = await req.json();
   if (!patient_id) return NextResponse.json({ error: 'Patient requis' }, { status: 400 });
 
   const db = getDb();
@@ -21,9 +21,9 @@ export async function POST(req: NextRequest) {
   const montant = parseInt(fraisRow?.value || '1250');
 
   const result = db.prepare(`
-    INSERT INTO consultations (patient_id, doctor_id, motif, diagnostic, notes, tension, temperature, poids, valide_jusqu, montant)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(patient_id, session.id, motif || null, diagnostic || null, notes || null, tension || null, temperature || null, poids || null, valide_jusqu, montant);
+    INSERT INTO consultations (patient_id, doctor_id, motif, diagnostic, notes, tension, temperature, poids, taille, valide_jusqu, montant)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(patient_id, session.id, motif || null, diagnostic || null, notes || null, tension || null, temperature || null, poids || null, taille || null, valide_jusqu, montant);
 
   const consultId = result.lastInsertRowid;
 

@@ -1,6 +1,12 @@
 "use client";
 import { useState, useEffect } from "react";
-import { genererOrdonnance } from "@/lib/pdf";
+import { genererOrdonnance, genererExamens } from "@/lib/pdf";
+
+const DownloadIcon = () => (
+  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+  </svg>
+);
 
 export default function PatientPrescriptions() {
   const [data, setData] = useState<any>(null);
@@ -19,11 +25,6 @@ export default function PatientPrescriptions() {
     };
     fetchAll();
   }, []);
-
-  const handlePrint = (consult: any) => {
-    if (!data) return;
-    genererOrdonnance({ etablissement, patient: data.patient, consultation: consult });
-  };
 
   if (loading) return <div className="p-8 text-gray-400">Chargement...</div>;
   if (!data) return <div className="p-8 text-red-500">Erreur</div>;
@@ -46,7 +47,8 @@ export default function PatientPrescriptions() {
             const isActive = new Date(c.valide_jusqu) >= new Date();
             return (
               <div key={c.id} className={`card ${isActive ? "border-l-4 border-l-primary-500" : "opacity-80"}`}>
-                <div className="flex items-start justify-between mb-4">
+                {/* En-tête de la consultation */}
+                <div className="flex items-start justify-between mb-4 flex-wrap gap-3">
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-gray-800">
@@ -54,26 +56,35 @@ export default function PatientPrescriptions() {
                       </span>
                       {isActive
                         ? <span className="badge-green">Active</span>
-                        : <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">Expirée</span>}
+                        : <span className="badge-gray">Expirée</span>}
                     </div>
                     <p className="text-sm text-gray-500 mt-1">Dr. {c.doctor_prenom} {c.doctor_nom}</p>
-                    {c.diagnostic && (
-                      <p className="text-sm text-gray-600 mt-1">
-                        <span className="font-medium">Diagnostic :</span> {c.diagnostic}
-                      </p>
+                  </div>
+
+                  {/* Boutons PDF séparés */}
+                  <div className="flex flex-wrap gap-2">
+                    {c.prescriptions?.length > 0 && (
+                      <button
+                        onClick={() => genererOrdonnance({ etablissement, patient, consultation: c })}
+                        className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium px-3 py-2 rounded-lg transition-colors shadow-sm"
+                      >
+                        <DownloadIcon />
+                        Ordonnance PDF
+                      </button>
+                    )}
+                    {c.examens?.length > 0 && (
+                      <button
+                        onClick={() => genererExamens({ etablissement, patient, consultation: c })}
+                        className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium px-3 py-2 rounded-lg transition-colors shadow-sm"
+                      >
+                        <DownloadIcon />
+                        Examens PDF
+                      </button>
                     )}
                   </div>
-                  <button
-                    onClick={() => handlePrint(c)}
-                    className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors shadow-sm"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    Télécharger PDF
-                  </button>
                 </div>
 
+                {/* Contenu */}
                 <div className="grid md:grid-cols-2 gap-4">
                   {c.prescriptions?.length > 0 && (
                     <div>
