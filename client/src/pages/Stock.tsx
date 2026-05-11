@@ -111,7 +111,7 @@ export default function Stock() {
         </div>
         <div className="bg-white rounded-xl border border-stone-100 p-4">
           <p className="text-stone-500 text-xs">Valeur totale</p>
-          <p className="text-xl font-bold text-stone-800">{totalValue.toFixed(0)} DA</p>
+          <p className="text-xl font-bold text-stone-800">{totalValue.toFixed(0)} F CFA</p>
         </div>
       </div>
 
@@ -156,7 +156,7 @@ export default function Stock() {
                         {low && <span className="ml-2 text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">faible</span>}
                       </td>
                       <td className="px-4 py-3 text-right text-stone-500">{ing.min_quantity} {ing.unit}</td>
-                      <td className="px-4 py-3 text-right text-stone-500">{ing.price_per_unit} DA</td>
+                      <td className="px-4 py-3 text-right text-stone-500">{ing.price_per_unit} F CFA</td>
                       <td className="px-4 py-3 text-stone-500">{ing.supplier || '–'}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-center gap-1">

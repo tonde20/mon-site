@@ -15,7 +15,7 @@ const PAY_LABEL: Record<string, string> = { cash: 'Espèces', virement: 'Viremen
 
 const PIE_COLORS = ['#d97706', '#f59e0b', '#fbbf24', '#fcd34d', '#fde68a', '#10b981', '#3b82f6', '#8b5cf6'];
 
-const fmt = (n: number) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' DA';
+const fmt = (n: number) => n.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' F CFA';
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
@@ -98,9 +98,9 @@ export default function Treasury() {
       startY: 50,
       head: [['Résumé financier', 'Montant']],
       body: [
-        ['Total recettes', `${summary.total_income.toFixed(2)} DA`],
-        ['Total dépenses', `${summary.total_expense.toFixed(2)} DA`],
-        ['Bénéfice net', `${summary.net_balance.toFixed(2)} DA`],
+        ['Total recettes', `${summary.total_income.toFixed(0)} F CFA`],
+        ['Total dépenses', `${summary.total_expense.toFixed(0)} F CFA`],
+        ['Bénéfice net', `${summary.net_balance.toFixed(0)} F CFA`],
       ],
       theme: 'grid',
       headStyles: { fillColor: [180, 83, 9], textColor: [255, 255, 255] },
@@ -119,12 +119,12 @@ export default function Treasury() {
       autoTable(doc, {
         startY: afterSummary + 5,
         head: [['Date', 'Catégorie', 'Description', 'Mode', 'Montant']],
-        body: income.map(t => [t.date, t.category, t.description || '–', PAY_LABEL[t.payment_method] || t.payment_method, `${t.amount.toFixed(2)} DA`]),
+        body: income.map(t => [t.date, t.category, t.description || '–', PAY_LABEL[t.payment_method] || t.payment_method, `${t.amount.toFixed(0)} F CFA`]),
         theme: 'striped',
         headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255] },
         bodyStyles: { fontSize: 9 },
         columnStyles: { 4: { halign: 'right' } },
-        foot: [['', '', '', 'Total', `${summary.total_income.toFixed(2)} DA`]],
+        foot: [['', '', '', 'Total', `${summary.total_income.toFixed(0)} F CFA`]],
         footStyles: { fontStyle: 'bold', fillColor: [220, 252, 231] },
       });
     }
@@ -144,12 +144,12 @@ export default function Treasury() {
       autoTable(doc, {
         startY: y + 5,
         head: [['Date', 'Catégorie', 'Description', 'Mode', 'Montant']],
-        body: expense.map(t => [t.date, t.category, t.description || '–', PAY_LABEL[t.payment_method] || t.payment_method, `${t.amount.toFixed(2)} DA`]),
+        body: expense.map(t => [t.date, t.category, t.description || '–', PAY_LABEL[t.payment_method] || t.payment_method, `${t.amount.toFixed(0)} F CFA`]),
         theme: 'striped',
         headStyles: { fillColor: [239, 68, 68], textColor: [255, 255, 255] },
         bodyStyles: { fontSize: 9 },
         columnStyles: { 4: { halign: 'right' } },
-        foot: [['', '', '', 'Total', `${summary.total_expense.toFixed(2)} DA`]],
+        foot: [['', '', '', 'Total', `${summary.total_expense.toFixed(0)} F CFA`]],
         footStyles: { fontStyle: 'bold', fillColor: [254, 226, 226] },
       });
     }
@@ -350,7 +350,7 @@ export default function Treasury() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-medium text-stone-600 block mb-1">Montant (DA)</label>
+                <label className="text-xs font-medium text-stone-600 block mb-1">Montant (F CFA)</label>
                 <input type="number" min="0" step="0.01" className={inp} value={form.amount || ''} onChange={e => setForm(p => ({ ...p, amount: parseFloat(e.target.value) || 0 }))} />
               </div>
               <div>

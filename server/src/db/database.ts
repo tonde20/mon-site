@@ -118,22 +118,22 @@ const productCount = (db.prepare('SELECT COUNT(*) as c FROM products').get() as 
 if (productCount === 0) {
   const ins = db.prepare('INSERT INTO products (name, category, price, description) VALUES (?, ?, ?, ?)');
   withTransaction(() => {
-    ins.run('Croissant nature', 'Viennoiseries', 1.50, 'Croissant beurre pur');
-    ins.run('Pain au chocolat', 'Viennoiseries', 1.80, 'Pâte feuilletée au chocolat');
-    ins.run('Brioche', 'Viennoiseries', 2.50, 'Brioche moelleuse');
-    ins.run('Chausson aux pommes', 'Viennoiseries', 1.80, 'Feuilleté garni de compote');
-    ins.run('Cake citron', 'Cakes', 15.00, 'Cake au citron entier');
-    ins.run('Cake marbré', 'Cakes', 14.00, 'Cake chocolat vanille');
-    ins.run('Cake aux fruits', 'Cakes', 16.00, 'Cake avec fruits confits');
-    ins.run('Gâteau anniversaire 6 pers.', 'Gâteaux', 35.00, 'Personnalisable sur commande');
-    ins.run('Gâteau anniversaire 12 pers.', 'Gâteaux', 65.00, 'Personnalisable sur commande');
-    ins.run('Pièce montée mariage 50 pers.', 'Gâteaux', 250.00, "Sur commande, 72h à l'avance");
-    ins.run('Pièce montée mariage 100 pers.', 'Gâteaux', 450.00, "Sur commande, 72h à l'avance");
-    ins.run('Café express', 'Boissons', 1.50, 'Café arabica');
-    ins.run('Café au lait', 'Boissons', 2.00, 'Café avec lait chaud');
-    ins.run('Thé à la menthe', 'Boissons', 1.50, 'Thé frais');
-    ins.run("Jus d'orange", 'Boissons', 3.00, 'Pressé frais');
-    ins.run('Jus pomme', 'Boissons', 2.50, 'Naturel 100%');
+    ins.run('Croissant nature', 'Viennoiseries', 500, 'Croissant beurre pur');
+    ins.run('Pain au chocolat', 'Viennoiseries', 500, 'Pâte feuilletée au chocolat');
+    ins.run('Brioche', 'Viennoiseries', 1000, 'Brioche moelleuse');
+    ins.run('Chausson aux pommes', 'Viennoiseries', 500, 'Feuilleté garni de compote');
+    ins.run('Cake citron', 'Cakes', 1000, 'Cake au citron entier');
+    ins.run('Cake marbré', 'Cakes', 1500, 'Cake chocolat vanille');
+    ins.run('Cake aux fruits', 'Cakes', 2000, 'Cake avec fruits confits');
+    ins.run('Gâteau anniversaire 6 pers.', 'Gâteaux', 5000, 'Personnalisable sur commande');
+    ins.run('Gâteau anniversaire 12 pers.', 'Gâteaux', 15000, 'Personnalisable sur commande');
+    ins.run('Pièce montée mariage 50 pers.', 'Gâteaux', 12500, "Sur commande, 72h à l'avance");
+    ins.run('Pièce montée mariage 100 pers.', 'Gâteaux', 25000, "Sur commande, 72h à l'avance");
+    ins.run('Café express', 'Boissons', 500, 'Café arabica');
+    ins.run('Café au lait', 'Boissons', 1000, 'Café avec lait chaud');
+    ins.run('Thé à la menthe', 'Boissons', 500, 'Thé frais');
+    ins.run("Jus d'orange", 'Boissons', 1000, 'Pressé frais');
+    ins.run('Jus pomme', 'Boissons', 1000, 'Naturel 100%');
   });
 }
 

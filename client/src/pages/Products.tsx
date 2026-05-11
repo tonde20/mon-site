@@ -113,7 +113,7 @@ export default function Products() {
                       {p.description && <p className="text-xs text-stone-400 mt-0.5">{p.description}</p>}
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="font-semibold text-amber-700">{p.price.toFixed(2)} DA</span>
+                      <span className="font-semibold text-amber-700">{p.price.toLocaleString('fr-FR')} F CFA</span>
                       <button onClick={() => toggleActive(p)} title={p.active ? 'Désactiver' : 'Activer'} className="text-stone-400 hover:text-amber-600">
                         {p.active ? <ToggleRight className="w-5 h-5 text-green-500" /> : <ToggleLeft className="w-5 h-5" />}
                       </button>
@@ -146,7 +146,7 @@ export default function Products() {
                 </select>
               </div>
               <div>
-                <label className="text-xs font-medium text-stone-600 block mb-1">Prix (DA)</label>
+                <label className="text-xs font-medium text-stone-600 block mb-1">Prix (F CFA)</label>
                 <input type="number" min="0" step="0.5" className={inp} value={form.price} onChange={e => setForm(p => ({ ...p, price: parseFloat(e.target.value) || 0 }))} />
               </div>
             </div>

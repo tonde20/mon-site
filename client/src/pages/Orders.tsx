@@ -15,7 +15,7 @@ const ALL_STATUSES: OrderStatus[] = ['pending', 'in_progress', 'ready', 'deliver
 const PAYMENT_METHODS = ['cash', 'virement', 'chèque', 'mobile'];
 const PAY_LABEL: Record<string, string> = { cash: 'Espèces', virement: 'Virement', chèque: 'Chèque', mobile: 'Mobile' };
 
-const fmt = (n: number) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + ' DA';
+const fmt = (n: number) => n.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' F CFA';
 
 function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
   return (
@@ -272,7 +272,7 @@ export default function Orders() {
                     {items.map(p => (
                       <button key={p.id} onClick={() => addToCart(p)} className={`text-left p-2.5 rounded-xl border text-sm transition-all hover:shadow-sm ${CATEGORY_COLORS[p.category] || 'bg-stone-50 border-stone-200'}`}>
                         <p className="font-medium text-stone-800 text-xs leading-tight">{p.name}</p>
-                        <p className="text-amber-700 font-semibold text-xs mt-1">{p.price.toFixed(2)} DA</p>
+                        <p className="text-amber-700 font-semibold text-xs mt-1">{p.price.toLocaleString('fr-FR')} F CFA</p>
                       </button>
                     ))}
                   </div>
