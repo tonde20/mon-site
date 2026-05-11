@@ -80,7 +80,7 @@ export default function Treasury() {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(22);
     doc.setTextColor(120, 53, 15);
-    doc.text('Pâtisserie Al-Baraka', 105, 22, { align: 'center' });
+    doc.text('Pâtisserie La Baraka', 105, 22, { align: 'center' });
 
     doc.setFontSize(14);
     doc.setTextColor(60, 40, 20);

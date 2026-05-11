@@ -30,7 +30,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </div>
           <div className="leading-tight">
             <div className="text-white font-bold text-sm">Pâtisserie</div>
-            <div className="text-amber-400 font-bold text-sm">Al-Baraka</div>
+            <div className="text-amber-400 font-bold text-sm">La Baraka</div>
           </div>
         </div>
 
@@ -54,7 +54,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="px-5 py-4 border-t border-stone-700">
-          <p className="text-stone-500 text-xs text-center">© {new Date().getFullYear()} Al-Baraka</p>
+          <p className="text-stone-500 text-xs text-center">© {new Date().getFullYear()} La Baraka</p>
         </div>
       </aside>
 
@@ -65,7 +65,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </button>
           <div className="flex items-center gap-2">
             <ChefHat className="w-5 h-5 text-amber-600" />
-            <span className="font-bold text-stone-800">Al-Baraka</span>
+            <span className="font-bold text-stone-800">La Baraka</span>
           </div>
         </header>
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">

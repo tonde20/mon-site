@@ -21,5 +21,5 @@ app.use('/api/dashboard', dashboardRouter);
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 
 app.listen(PORT, () => {
-  console.log(`🥐 Serveur Pâtisserie Al-Baraka → http://localhost:${PORT}`);
+  console.log(`🥐 Serveur Pâtisserie La Baraka → http://localhost:${PORT}`);
 });
