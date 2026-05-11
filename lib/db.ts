@@ -1,28 +1,31 @@
-import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import bcrypt from 'bcryptjs';
 
+// node:sqlite est natif dans Node.js 22.5+ — aucune compilation nécessaire
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { DatabaseSync } = require('node:sqlite');
+
 const DB_PATH = path.join(process.cwd(), 'data', 'cma.db');
 
-let db: Database.Database | null = null;
+let db: any = null;
 
-export function getDb(): Database.Database {
+export function getDb(): any {
   if (!db) {
     const dataDir = path.dirname(DB_PATH);
     if (!fs.existsSync(dataDir)) {
       fs.mkdirSync(dataDir, { recursive: true });
     }
-    db = new Database(DB_PATH);
-    db.pragma('journal_mode = WAL');
-    db.pragma('foreign_keys = ON');
+    db = new DatabaseSync(DB_PATH);
+    db.exec('PRAGMA journal_mode = WAL');
+    db.exec('PRAGMA foreign_keys = ON');
     initSchema(db);
     seedData(db);
   }
   return db;
 }
 
-function initSchema(db: Database.Database) {
+function initSchema(db: any) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
@@ -135,7 +138,7 @@ function initSchema(db: Database.Database) {
   `);
 }
 
-function seedData(db: Database.Database) {
+function seedData(db: any) {
   const settingExists = db.prepare('SELECT value FROM settings WHERE key = ?').get('etablissement_nom');
   if (settingExists) return;
 
@@ -155,20 +158,18 @@ function seedData(db: Database.Database) {
     const pwd = bcrypt.hashSync(`medecin${i}123`, 10);
     const phoneNum = 74000000 + (i - 1);
     const phone = `0${phoneNum}`;
-    db.prepare(`
-      INSERT OR IGNORE INTO doctors (nom, prenom, telephone, specialite, username, password)
-      VALUES (?, ?, ?, 'Médecin généraliste', ?, ?)
-    `).run(noms[i - 1], prenoms[i - 1], phone, username, pwd);
+    db.prepare(
+      "INSERT OR IGNORE INTO doctors (nom, prenom, telephone, specialite, username, password) VALUES (?, ?, ?, 'Médecin généraliste', ?, ?)"
+    ).run(noms[i - 1], prenoms[i - 1], phone, username, pwd);
   }
 
   const patientPwd = bcrypt.hashSync('patient123', 10);
-  db.prepare(`
-    INSERT OR IGNORE INTO patients (code, nom, prenom, date_naissance, sexe, telephone, adresse, password)
-    VALUES ('PAT-000001', 'KABORÉ', 'Alassane', '1985-03-15', 'M', '70123456', 'Boromo centre', ?)
-  `).run(patientPwd);
+  db.prepare(
+    "INSERT OR IGNORE INTO patients (code, nom, prenom, date_naissance, sexe, telephone, adresse, password) VALUES ('PAT-000001', 'KABORÉ', 'Alassane', '1985-03-15', 'M', '70123456', 'Boromo centre', ?)"
+  ).run(patientPwd);
 }
 
-export function generatePatientCode(db: Database.Database): string {
+export function generatePatientCode(db: any): string {
   const last = db.prepare('SELECT code FROM patients ORDER BY id DESC LIMIT 1').get() as { code: string } | undefined;
   if (!last) return 'PAT-000001';
   const num = parseInt(last.code.split('-')[1]) + 1;
