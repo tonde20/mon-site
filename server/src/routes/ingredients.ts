@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import db from '../db/database';
+import db, { withTransaction } from '../db/database';
 
 const router = Router();
 
@@ -49,13 +49,13 @@ router.post('/:id/movements', (req, res) => {
   const ing = db.prepare('SELECT * FROM ingredients WHERE id = ?').get(req.params.id) as any;
   if (!ing) return res.status(404).json({ error: 'Non trouvé' });
 
-  db.transaction(() => {
+  withTransaction(() => {
     db.prepare('INSERT INTO stock_movements (ingredient_id, type, quantity, reason) VALUES (?, ?, ?, ?)').run(
       req.params.id, type, quantity, reason ?? ''
     );
     const newQty = type === 'in' ? ing.quantity + quantity : Math.max(0, ing.quantity - quantity);
     db.prepare('UPDATE ingredients SET quantity=?, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(newQty, req.params.id);
-  })();
+  });
 
   res.json(db.prepare('SELECT * FROM ingredients WHERE id = ?').get(req.params.id));
 });

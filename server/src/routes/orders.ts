@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import db from '../db/database';
+import db, { withTransaction } from '../db/database';
 
 const router = Router();
 
@@ -22,7 +22,7 @@ router.post('/', (req, res) => {
   const { customer_name, customer_phone, items, payment_method, notes, delivery_date } = req.body;
   const total = (items as any[]).reduce((s: number, i: any) => s + i.total_price, 0);
 
-  const order = db.transaction(() => {
+  const order = withTransaction(() => {
     const r = db.prepare(
       'INSERT INTO orders (customer_name, customer_phone, total_amount, payment_method, notes, delivery_date) VALUES (?, ?, ?, ?, ?, ?)'
     ).run(customer_name, customer_phone ?? '', total, payment_method ?? 'cash', notes ?? '', delivery_date ?? null);
@@ -35,7 +35,7 @@ router.post('/', (req, res) => {
       insItem.run(orderId, item.product_id ?? null, item.product_name, item.quantity, item.unit_price, item.total_price, item.customization ?? '');
     }
     return db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
-  })();
+  });
 
   res.status(201).json(order);
 });

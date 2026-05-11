@@ -1,10 +1,37 @@
-import Database from 'better-sqlite3';
+import { Database as WasmDB } from 'node-sqlite3-wasm';
 import path from 'path';
 
-const db = new Database(path.join(__dirname, '../../../patisserie.db'));
+type Row = Record<string, unknown>;
+type RunResult = { changes: number; lastInsertRowid: number };
 
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+function wrapStmt(raw: any) {
+  const toArr = (args: any[]): any[] => (args.length === 1 && Array.isArray(args[0]) ? args[0] : args);
+  return {
+    run: (...args: any[]): RunResult => raw.run(toArr(args)),
+    get: (...args: any[]): Row | undefined => raw.get(toArr(args)),
+    all: (...args: any[]): Row[] => raw.all(toArr(args)),
+  };
+}
+
+const _db = new WasmDB(path.join(__dirname, '../../../patisserie.db'));
+_db.exec('PRAGMA foreign_keys = ON');
+
+const db = {
+  exec: (sql: string) => { _db.exec(sql); },
+  prepare: (sql: string) => wrapStmt(_db.prepare(sql)),
+};
+
+export function withTransaction<T>(fn: () => T): T {
+  db.exec('BEGIN');
+  try {
+    const result = fn();
+    db.exec('COMMIT');
+    return result;
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
+  }
+}
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS ingredients (
@@ -83,7 +110,7 @@ db.exec(`
 const productCount = (db.prepare('SELECT COUNT(*) as c FROM products').get() as any).c;
 if (productCount === 0) {
   const ins = db.prepare('INSERT INTO products (name, category, price, description) VALUES (?, ?, ?, ?)');
-  db.transaction(() => {
+  withTransaction(() => {
     ins.run('Croissant nature', 'Viennoiseries', 1.50, 'Croissant beurre pur');
     ins.run('Pain au chocolat', 'Viennoiseries', 1.80, 'Pâte feuilletée au chocolat');
     ins.run('Brioche', 'Viennoiseries', 2.50, 'Brioche moelleuse');
@@ -93,20 +120,20 @@ if (productCount === 0) {
     ins.run('Cake aux fruits', 'Cakes', 16.00, 'Cake avec fruits confits');
     ins.run('Gâteau anniversaire 6 pers.', 'Gâteaux', 35.00, 'Personnalisable sur commande');
     ins.run('Gâteau anniversaire 12 pers.', 'Gâteaux', 65.00, 'Personnalisable sur commande');
-    ins.run('Pièce montée mariage 50 pers.', 'Gâteaux', 250.00, 'Sur commande, 72h à l\'avance');
-    ins.run('Pièce montée mariage 100 pers.', 'Gâteaux', 450.00, 'Sur commande, 72h à l\'avance');
+    ins.run('Pièce montée mariage 50 pers.', 'Gâteaux', 250.00, "Sur commande, 72h à l'avance");
+    ins.run('Pièce montée mariage 100 pers.', 'Gâteaux', 450.00, "Sur commande, 72h à l'avance");
     ins.run('Café express', 'Boissons', 1.50, 'Café arabica');
     ins.run('Café au lait', 'Boissons', 2.00, 'Café avec lait chaud');
     ins.run('Thé à la menthe', 'Boissons', 1.50, 'Thé frais');
     ins.run("Jus d'orange", 'Boissons', 3.00, 'Pressé frais');
     ins.run('Jus pomme', 'Boissons', 2.50, 'Naturel 100%');
-  })();
+  });
 }
 
 const ingCount = (db.prepare('SELECT COUNT(*) as c FROM ingredients').get() as any).c;
 if (ingCount === 0) {
   const ins = db.prepare('INSERT INTO ingredients (name, category, quantity, unit, min_quantity, price_per_unit, supplier) VALUES (?, ?, ?, ?, ?, ?, ?)');
-  db.transaction(() => {
+  withTransaction(() => {
     ins.run('Farine de blé', 'Farines', 25, 'kg', 5, 1.20, 'Moulin Local');
     ins.run('Sucre blanc', 'Sucres', 15, 'kg', 3, 1.00, 'Fournisseur Général');
     ins.run('Beurre', 'Matières grasses', 8, 'kg', 2, 8.50, 'Laiterie Locale');
@@ -122,7 +149,7 @@ if (ingCount === 0) {
     ins.run('Oranges', 'Fruits', 10, 'kg', 3, 2.50, 'Marché Local');
     ins.run('Pommes', 'Fruits', 8, 'kg', 2, 2.00, 'Marché Local');
     ins.run('Sucre glace', 'Sucres', 3, 'kg', 1, 1.50, 'Fournisseur Général');
-  })();
+  });
 }
 
 export default db;
