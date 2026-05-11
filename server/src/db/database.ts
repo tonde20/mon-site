@@ -1,5 +1,6 @@
 import { Database as WasmDB } from 'node-sqlite3-wasm';
 import path from 'path';
+import fs from 'fs';
 
 type Row = Record<string, unknown>;
 type RunResult = { changes: number; lastInsertRowid: number };
@@ -13,7 +14,13 @@ function wrapStmt(raw: any) {
   };
 }
 
-const _db = new WasmDB(path.join(__dirname, '../../../patisserie.db'));
+const DB_PATH = path.join(__dirname, '../../../patisserie.db');
+const LOCK_PATH = DB_PATH + '.lock';
+if (fs.existsSync(LOCK_PATH)) {
+  try { fs.rmSync(LOCK_PATH, { recursive: true, force: true }); } catch (_) {}
+}
+
+const _db = new WasmDB(DB_PATH);
 _db.exec('PRAGMA foreign_keys = ON');
 
 const db = {
