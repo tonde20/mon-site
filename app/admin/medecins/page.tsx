@@ -1,0 +1,168 @@
+"use client";
+import { useState, useEffect } from "react";
+
+interface Doctor {
+  id: number;
+  nom: string;
+  prenom: string;
+  telephone: string;
+  specialite: string;
+  username: string;
+  actif: number;
+}
+
+export default function MedecinsPage() {
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editingDoc, setEditingDoc] = useState<Doctor | null>(null);
+  const [form, setForm] = useState({ nom: "", prenom: "", telephone: "", specialite: "Médecin généraliste", username: "", password: "" });
+  const [message, setMessage] = useState({ type: "", text: "" });
+
+  const fetchDoctors = () => {
+    setLoading(true);
+    fetch("/api/doctors").then(r => r.json()).then(d => { setDoctors(d); setLoading(false); });
+  };
+
+  useEffect(() => { fetchDoctors(); }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const method = editingDoc ? "PUT" : "POST";
+    const url = editingDoc ? `/api/doctors/${editingDoc.id}` : "/api/doctors";
+    const body = editingDoc
+      ? { nom: form.nom, prenom: form.prenom, telephone: form.telephone, specialite: form.specialite, ...(form.password ? { password: form.password } : {}) }
+      : form;
+    const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const data = await res.json();
+    if (res.ok) {
+      setMessage({ type: "success", text: editingDoc ? "Médecin modifié avec succès" : "Médecin ajouté avec succès" });
+      setShowForm(false);
+      setEditingDoc(null);
+      setForm({ nom: "", prenom: "", telephone: "", specialite: "Médecin généraliste", username: "", password: "" });
+      fetchDoctors();
+    } else {
+      setMessage({ type: "error", text: data.error || "Erreur" });
+    }
+  };
+
+  const handleToggleActif = async (doc: Doctor) => {
+    await fetch(`/api/doctors/${doc.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ actif: doc.actif ? 0 : 1 }),
+    });
+    fetchDoctors();
+  };
+
+  const startEdit = (doc: Doctor) => {
+    setEditingDoc(doc);
+    setForm({ nom: doc.nom, prenom: doc.prenom, telephone: doc.telephone, specialite: doc.specialite, username: doc.username, password: "" });
+    setShowForm(true);
+  };
+
+  return (
+    <div className="p-8">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Gestion des médecins</h1>
+          <p className="text-gray-500 text-sm mt-1">{doctors.filter(d => d.actif).length} médecin(s) actif(s)</p>
+        </div>
+        <button onClick={() => { setShowForm(true); setEditingDoc(null); setForm({ nom: "", prenom: "", telephone: "", specialite: "Médecin généraliste", username: "", password: "" }); }} className="btn-primary flex items-center gap-2">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+          Ajouter un médecin
+        </button>
+      </div>
+
+      {message.text && (
+        <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${message.type === "success" ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
+          {message.text}
+        </div>
+      )}
+
+      {showForm && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
+            <h2 className="font-semibold text-gray-800 mb-4">{editingDoc ? "Modifier le médecin" : "Nouveau médecin"}</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
+                  <input type="text" value={form.nom} onChange={e => setForm(f => ({ ...f, nom: e.target.value }))} className="input-field" required />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Prénom *</label>
+                  <input type="text" value={form.prenom} onChange={e => setForm(f => ({ ...f, prenom: e.target.value }))} className="input-field" required />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone *</label>
+                <input type="text" value={form.telephone} onChange={e => setForm(f => ({ ...f, telephone: e.target.value }))} className="input-field" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Spécialité</label>
+                <input type="text" value={form.specialite} onChange={e => setForm(f => ({ ...f, specialite: e.target.value }))} className="input-field" />
+              </div>
+              {!editingDoc && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nom d'utilisateur *</label>
+                  <input type="text" value={form.username} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} className="input-field" required />
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{editingDoc ? "Nouveau mot de passe (laisser vide pour ne pas changer)" : "Mot de passe *"}</label>
+                <input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} className="input-field" required={!editingDoc} />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button type="submit" className="btn-primary flex-1">Enregistrer</button>
+                <button type="button" onClick={() => { setShowForm(false); setEditingDoc(null); }} className="btn-secondary flex-1">Annuler</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <div className="card">
+        {loading ? (
+          <div className="text-center py-8 text-gray-400">Chargement...</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="text-left py-3 px-3 text-gray-500 font-medium">Médecin</th>
+                  <th className="text-left py-3 px-3 text-gray-500 font-medium">Téléphone</th>
+                  <th className="text-left py-3 px-3 text-gray-500 font-medium">Spécialité</th>
+                  <th className="text-left py-3 px-3 text-gray-500 font-medium">Identifiant</th>
+                  <th className="text-left py-3 px-3 text-gray-500 font-medium">Statut</th>
+                  <th className="text-left py-3 px-3 text-gray-500 font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {doctors.map(doc => (
+                  <tr key={doc.id} className="border-b border-gray-50 hover:bg-gray-50">
+                    <td className="py-3 px-3 font-medium">Dr. {doc.prenom} {doc.nom}</td>
+                    <td className="py-3 px-3 text-gray-600">{doc.telephone}</td>
+                    <td className="py-3 px-3 text-gray-600">{doc.specialite}</td>
+                    <td className="py-3 px-3 text-gray-500 font-mono text-xs">{doc.username}</td>
+                    <td className="py-3 px-3">
+                      {doc.actif ? <span className="badge-green">Actif</span> : <span className="badge-red">Inactif</span>}
+                    </td>
+                    <td className="py-3 px-3">
+                      <div className="flex gap-2">
+                        <button onClick={() => startEdit(doc)} className="text-primary-600 hover:text-primary-700 text-xs font-medium">Modifier</button>
+                        <button onClick={() => handleToggleActif(doc)} className={`text-xs font-medium ${doc.actif ? "text-red-500 hover:text-red-700" : "text-green-600 hover:text-green-700"}`}>
+                          {doc.actif ? "Désactiver" : "Activer"}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
