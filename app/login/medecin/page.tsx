@@ -90,10 +90,17 @@ export default function MedecinLoginPage() {
   return (
     <div className="flex h-screen overflow-hidden">
 
-      {/* ── Panneau gauche – illustration ── */}
-      <div className="hidden lg:flex lg:w-[58%] relative overflow-hidden flex-col items-center justify-center"
-        style={{ background: "linear-gradient(155deg,#052e16 0%,#064e3b 55%,#065f46 100%)" }}>
-        <Illustration />
+      {/* ── Panneau gauche – photo médicale ── */}
+      <div className="hidden lg:flex lg:w-[58%] relative overflow-hidden flex-col items-center justify-center">
+        {/* Photo de fond */}
+        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: "url('/images/bg-medecin.jpg')" }}/>
+        {/* Dégradé vert superposé pour lisibilité */}
+        <div className="absolute inset-0"
+          style={{ background: "linear-gradient(155deg,rgba(5,46,22,0.90) 0%,rgba(6,78,59,0.82) 50%,rgba(6,95,70,0.75) 100%)" }}/>
+        {/* Vignette sombre sur les bords */}
+        <div className="absolute inset-0"
+          style={{ boxShadow: "inset 0 0 120px rgba(0,0,0,0.4)" }}/>
 
         {/* Overlay content */}
         <div className="relative z-10 text-center px-14 max-w-md">

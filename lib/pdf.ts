@@ -275,13 +275,15 @@ export function genererCertificat(opts: {
   const contentX = frameX + 8;
   const contentW = frameW - 16;
 
-  // Calculer la hauteur du texte avec interligne 1.5
+  // Calculer la hauteur du texte avec interligne 1.5 (gestion des paragraphes séparés par \n\n)
   const fontSize = 10.5;
   const lineHeightMm = fontSize * 1.5 / 2.834;
   doc.setFontSize(fontSize);
   doc.setLineHeightFactor(1.5);
-  const lines = doc.splitTextToSize(certificat.contenu || '', contentW);
-  const textHeight = lines.length * lineHeightMm;
+  const rawParagraphs = (certificat.contenu || '').split('\n\n');
+  const paragraphLines = rawParagraphs.map(p => doc.splitTextToSize(p.trim(), contentW));
+  const totalLineCount = paragraphLines.reduce((acc, pl, i) => acc + pl.length + (i < paragraphLines.length - 1 ? 1 : 0), 0);
+  const textHeight = totalLineCount * lineHeightMm;
   const frameH = textHeight + 20;
 
   // Dessiner le cadre
@@ -289,10 +291,15 @@ export function genererCertificat(opts: {
   doc.setLineWidth(0.6);
   doc.roundedRect(frameX, y, frameW, frameH, 3, 3, 'S');
 
-  // Texte justifié dans le cadre
+  // Texte justifié dans le cadre, paragraphe par paragraphe
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...GRAY_DARK);
-  doc.text(lines, contentX, y + 12, { align: 'justify', maxWidth: contentW });
+  let textY = y + 12;
+  for (let pi = 0; pi < paragraphLines.length; pi++) {
+    doc.text(paragraphLines[pi], contentX, textY, { align: 'justify', maxWidth: contentW });
+    textY += paragraphLines[pi].length * lineHeightMm;
+    if (pi < paragraphLines.length - 1) textY += lineHeightMm;
+  }
   doc.setLineHeightFactor(1.15);
 
   y += frameH + 16;

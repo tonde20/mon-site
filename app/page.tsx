@@ -48,10 +48,11 @@ export default function HomePage() {
       {/* Navbar */}
       <nav className="relative z-10 flex items-center justify-between px-8 py-5 border-b border-white/5">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg" style={{ background: "linear-gradient(135deg,#16a34a,#0d9488)" }}>
-            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-            </svg>
+          <div className="w-9 h-9 rounded-xl overflow-hidden shadow-lg flex-shrink-0" style={{ background: "linear-gradient(135deg,#16a34a,#0d9488)" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/images/logo-cma.png" alt="Logo CMA" className="w-full h-full object-cover"
+              onError={(e: any) => { e.currentTarget.style.display='none'; e.currentTarget.parentElement.innerHTML='<svg class=\'w-5 h-5 text-white m-auto\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'currentColor\'><path stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m5 0h4m-6-5h.01M13 16h.01\'/></svg>'; }}
+            />
           </div>
           <span className="font-bold text-white/80 text-sm tracking-wide">{etablissement}</span>
         </div>
@@ -59,12 +60,10 @@ export default function HomePage() {
 
       {/* Hero */}
       <div className="relative z-10 text-center pt-16 pb-12 px-6">
-        <div className="inline-flex items-center justify-center w-24 h-24 rounded-3xl mb-6"
-          style={{ background: "linear-gradient(135deg,#166534,#0f766e)", boxShadow: "0 0 80px rgba(22,163,74,0.25),0 20px 40px rgba(0,0,0,0.4)" }}>
-          <svg className="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.4}
-              d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-          </svg>
+        <div className="w-28 h-28 rounded-3xl overflow-hidden mb-6 shadow-2xl"
+          style={{ boxShadow: "0 0 80px rgba(22,163,74,0.25),0 20px 40px rgba(0,0,0,0.5)" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/images/logo-cma.png" alt="Logo CMA" className="w-full h-full object-cover"/>
         </div>
         <h1 className="text-5xl md:text-6xl font-black tracking-tighter mb-3">
           <span style={{ backgroundImage: "linear-gradient(90deg,#4ade80,#2dd4bf,#60a5fa)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>

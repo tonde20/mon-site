@@ -53,6 +53,11 @@ export default function PatientDossierPage() {
     nb_jours: "",
     date_debut: "",
     date_fin: "",
+    date_deces: "",
+    heure_deces: "",
+    lieu_deces: "",
+    cause_deces: "sa maladie",
+    cause_autres: "",
   });
 
   const [rdvForm, setRdvForm] = useState({ doctor_id: "", date_heure: "", motif: "" });
@@ -105,6 +110,22 @@ export default function PatientDossierPage() {
       const nom = data ? `${data.patient.prenom} ${data.patient.nom}` : '';
       return `Je soussigné(e), ${doctorName}, Docteur en médecine, certifie avoir examiné ce jour ${dateJour} ${civilite} ${nom}, présentant un état de santé nécessitant un repos médical de ${certForm.nb_jours || '…'} jour(s), à compter du ${dateDebut} jusqu'au ${dateFin} inclus. Le présent certificat est délivré à la demande de l'intéressé(e) pour servir et valoir ce que de droit.`;
     }
+    if (certForm.type === "Décès") {
+      const civilite = data?.patient.sexe === 'F' ? 'Mme' : 'M.';
+      const nomPrenom = data ? `${data.patient.prenom} ${data.patient.nom}` : '…';
+      const dateNaissance = data?.patient.date_naissance
+        ? new Date(data.patient.date_naissance).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
+        : '…';
+      const dateDeces = certForm.date_deces
+        ? new Date(certForm.date_deces).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
+        : '…';
+      const heureDeces = certForm.heure_deces || '…';
+      const lieuDeces = certForm.lieu_deces || '…';
+      const cause = certForm.cause_deces === 'autres'
+        ? `autres causes (${certForm.cause_autres || '…'})`
+        : certForm.cause_deces;
+      return `Je soussigné(e), ${doctorName}, certifie avoir constaté ce jour le décès de ${civilite} ${nomPrenom}, né(e) le ${dateNaissance}, survenu le ${dateDeces} à ${heureDeces}, à ${lieuDeces} des suites de ${cause}.\n\nAucun obstacle médico-légal à l'inhumation n'a été constaté.`;
+    }
     return certForm.contenu;
   };
 
@@ -131,7 +152,7 @@ export default function PatientDossierPage() {
         patient: data.patient,
         certificat: { type: certForm.type, contenu, date: new Date().toISOString(), doctor_prenom, doctor_nom },
       });
-      setCertForm({ type: "Médical", contenu: "", nb_jours: "", date_debut: "", date_fin: "" });
+      setCertForm({ type: "Médical", contenu: "", nb_jours: "", date_debut: "", date_fin: "", date_deces: "", heure_deces: "", lieu_deces: "", cause_deces: "sa maladie", cause_autres: "" });
     } else {
       setMessage({ type: "error", text: "Erreur" });
     }
@@ -503,6 +524,42 @@ export default function PatientDossierPage() {
                       </div>
                     </div>
                     <p className="text-xs text-primary-600">Le texte standardisé du certificat sera généré automatiquement.</p>
+                  </div>
+                </div>
+              ) : certForm.type === "Décès" ? (
+                <div className="space-y-3">
+                  <div className="bg-red-50 border border-red-100 rounded-xl p-4">
+                    <p className="text-xs font-semibold text-red-700 uppercase tracking-wide mb-3">Paramètres du constat de décès</p>
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Date du décès *</label>
+                        <input type="date" value={certForm.date_deces} onChange={e => setCertForm(f => ({ ...f, date_deces: e.target.value }))} className="input-field" required />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Heure du décès *</label>
+                        <input type="time" value={certForm.heure_deces} onChange={e => setCertForm(f => ({ ...f, heure_deces: e.target.value }))} className="input-field" required />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Lieu du décès *</label>
+                        <input type="text" value={certForm.lieu_deces} onChange={e => setCertForm(f => ({ ...f, lieu_deces: e.target.value }))} className="input-field" placeholder="Ex. : domicile, CMA de Boromo..." required />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Cause du décès *</label>
+                        <select value={certForm.cause_deces} onChange={e => setCertForm(f => ({ ...f, cause_deces: e.target.value }))} className="input-field" required>
+                          <option value="sa maladie">Sa maladie</option>
+                          <option value="ses blessures">Ses blessures</option>
+                          <option value="mort subite">Mort subite</option>
+                          <option value="autres">Autres (à préciser)</option>
+                        </select>
+                      </div>
+                      {certForm.cause_deces === "autres" && (
+                        <div className="col-span-2">
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Préciser la cause *</label>
+                          <input type="text" value={certForm.cause_autres} onChange={e => setCertForm(f => ({ ...f, cause_autres: e.target.value }))} className="input-field" placeholder="Préciser la cause du décès..." required />
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-red-600">Le texte standardisé du certificat de décès sera généré automatiquement.</p>
                   </div>
                 </div>
               ) : (
