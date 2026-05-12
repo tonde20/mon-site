@@ -143,6 +143,8 @@ function runMigrations(db: any) {
   // Colonnes ajoutées après la création initiale de la DB
   try { db.exec("ALTER TABLE consultations ADD COLUMN taille TEXT"); } catch {}
   try { db.exec("ALTER TABLE patients ADD COLUMN decede INTEGER DEFAULT 0"); } catch {}
+  try { db.exec("ALTER TABLE consultations ADD COLUMN type_prise_en_charge TEXT DEFAULT 'ambulatoire'"); } catch {}
+  try { db.exec("ALTER TABLE consultations ADD COLUMN service_hospitalisation TEXT"); } catch {}
 }
 
 function seedData(db: any) {

@@ -10,6 +10,7 @@ interface Consultation {
   tension: string; temperature: string; poids: string; taille: string; valide_jusqu: string; montant: number;
   doctor_nom: string; doctor_prenom: string;
   prescriptions: Prescription[]; examens: Examen[];
+  type_prise_en_charge?: string; service_hospitalisation?: string;
 }
 interface Patient {
   id: number; code: string; nom: string; prenom: string; date_naissance: string;
@@ -43,6 +44,8 @@ export default function PatientDossierPage() {
 
   const [consultForm, setConsultForm] = useState({
     motif: "", diagnostic: "", notes: "", tension: "", temperature: "", poids: "", taille: "",
+    type_prise_en_charge: "ambulatoire",
+    service_hospitalisation: "",
     prescriptions: [{ medicament: "", posologie: "", duree: "" }],
     examens: [{ type_examen: "", description: "" }],
   });
@@ -96,7 +99,7 @@ export default function PatientDossierPage() {
       setActiveTab("dossier");
       const updated = await fetch(`/api/patients/${code}`);
       if (updated.ok) setData(await updated.json());
-      setConsultForm({ motif: "", diagnostic: "", notes: "", tension: "", temperature: "", poids: "", taille: "", prescriptions: [{ medicament: "", posologie: "", duree: "" }], examens: [{ type_examen: "", description: "" }] });
+      setConsultForm({ motif: "", diagnostic: "", notes: "", tension: "", temperature: "", poids: "", taille: "", type_prise_en_charge: "ambulatoire", service_hospitalisation: "", prescriptions: [{ medicament: "", posologie: "", duree: "" }], examens: [{ type_examen: "", description: "" }] });
     } else {
       setMessage({ type: "error", text: "Erreur lors de l'enregistrement" });
     }
@@ -225,6 +228,13 @@ export default function PatientDossierPage() {
               {selectedConsult.diagnostic && (
                 <div><p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Diagnostic</p><p className="text-gray-800 font-medium">{selectedConsult.diagnostic}</p></div>
               )}
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Prise en charge</p>
+                {selectedConsult.type_prise_en_charge === "hospitalisation"
+                  ? <span className="inline-flex items-center gap-1.5 bg-orange-100 text-orange-800 font-semibold text-sm px-3 py-1 rounded-lg">🏥 Hospitalisation — {selectedConsult.service_hospitalisation || "service non précisé"}</span>
+                  : <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-800 font-semibold text-sm px-3 py-1 rounded-lg">🏠 Traitement ambulatoire</span>
+                }
+              </div>
               {/* Constantes vitales */}
               {(selectedConsult.tension || selectedConsult.temperature || selectedConsult.poids || selectedConsult.taille) && (
                 <div>
@@ -402,14 +412,17 @@ export default function PatientDossierPage() {
                   </div>
                   {c.motif && <p className="text-sm text-gray-500">Motif : {c.motif}</p>}
                   {c.diagnostic && <p className="text-sm text-gray-700 font-medium">Diagnostic : {c.diagnostic}</p>}
-                  {/* IMC résumé dans la carte */}
                   {c.poids && c.taille && (() => {
                     const imc = calcIMC(c.poids, c.taille);
                     if (!imc) return null;
                     const { label, color } = imcLabel(parseFloat(imc));
                     return <p className={`text-xs mt-1 ${color}`}>IMC {imc} — {label}</p>;
                   })()}
-                  <div className="flex gap-2 mt-2">
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {c.type_prise_en_charge === "hospitalisation"
+                      ? <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium">🏥 Hospitalisé — {c.service_hospitalisation || "service non précisé"}</span>
+                      : <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">🏠 Ambulatoire</span>
+                    }
                     {c.prescriptions.length > 0 && <span className="text-xs bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full font-medium">{c.prescriptions.length} prescription(s)</span>}
                     {c.examens.length > 0 && <span className="text-xs bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full font-medium">{c.examens.length} examen(s)</span>}
                   </div>
@@ -488,33 +501,85 @@ export default function PatientDossierPage() {
               <div><label className="block text-xs font-medium text-gray-600 mb-1.5">Motif</label><input type="text" value={consultForm.motif} onChange={e => setConsultForm(f => ({ ...f, motif: e.target.value }))} className="input-field" placeholder="Fièvre, douleur..." /></div>
               <div><label className="block text-xs font-medium text-gray-600 mb-1.5">Diagnostic</label><input type="text" value={consultForm.diagnostic} onChange={e => setConsultForm(f => ({ ...f, diagnostic: e.target.value }))} className="input-field" placeholder="Paludisme, grippe..." /></div>
               <div><label className="block text-xs font-medium text-gray-600 mb-1.5">Notes / Observations</label><textarea value={consultForm.notes} onChange={e => setConsultForm(f => ({ ...f, notes: e.target.value }))} className="input-field h-20 resize-none" placeholder="Observations supplémentaires..." /></div>
-            </div>
-          </div>
 
-          <div className="card">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-gray-700 flex items-center gap-2">
-                <span className="w-6 h-6 bg-primary-100 text-primary-700 rounded-full flex items-center justify-center text-xs font-bold">3</span>
-                Prescriptions
-              </h3>
-              <button type="button" onClick={() => setConsultForm(f => ({ ...f, prescriptions: [...f.prescriptions, { medicament: "", posologie: "", duree: "" }] }))} className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">+ Ajouter</button>
-            </div>
-            <div className="space-y-2">
-              {consultForm.prescriptions.map((p, i) => (
-                <div key={i} className="grid grid-cols-12 gap-2 items-center">
-                  <input type="text" value={p.medicament} onChange={e => { const a = [...consultForm.prescriptions]; a[i].medicament = e.target.value; setConsultForm(f => ({ ...f, prescriptions: a })); }} className="input-field col-span-4" placeholder="Médicament" />
-                  <input type="text" value={p.posologie} onChange={e => { const a = [...consultForm.prescriptions]; a[i].posologie = e.target.value; setConsultForm(f => ({ ...f, prescriptions: a })); }} className="input-field col-span-4" placeholder="Posologie" />
-                  <input type="text" value={p.duree} onChange={e => { const a = [...consultForm.prescriptions]; a[i].duree = e.target.value; setConsultForm(f => ({ ...f, prescriptions: a })); }} className="input-field col-span-3" placeholder="Durée" />
-                  {i > 0 && <button type="button" onClick={() => setConsultForm(f => ({ ...f, prescriptions: f.prescriptions.filter((_, j) => j !== i) }))} className="text-red-400 hover:text-red-600 col-span-1 text-center text-lg">×</button>}
+              {/* Prise en charge */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-2">Mode de prise en charge *</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setConsultForm(f => ({ ...f, type_prise_en_charge: "ambulatoire", service_hospitalisation: "" }))}
+                    className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${consultForm.type_prise_en_charge === "ambulatoire" ? "border-primary-500 bg-primary-50" : "border-gray-200 hover:border-gray-300 bg-white"}`}
+                  >
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg flex-shrink-0 ${consultForm.type_prise_en_charge === "ambulatoire" ? "bg-primary-100" : "bg-gray-100"}`}>🏠</div>
+                    <div>
+                      <p className={`text-sm font-semibold ${consultForm.type_prise_en_charge === "ambulatoire" ? "text-primary-700" : "text-gray-700"}`}>Ambulatoire</p>
+                      <p className="text-xs text-gray-400">Traitement à domicile</p>
+                    </div>
+                    {consultForm.type_prise_en_charge === "ambulatoire" && <span className="ml-auto text-primary-600">✓</span>}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConsultForm(f => ({ ...f, type_prise_en_charge: "hospitalisation" }))}
+                    className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${consultForm.type_prise_en_charge === "hospitalisation" ? "border-orange-500 bg-orange-50" : "border-gray-200 hover:border-gray-300 bg-white"}`}
+                  >
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg flex-shrink-0 ${consultForm.type_prise_en_charge === "hospitalisation" ? "bg-orange-100" : "bg-gray-100"}`}>🏥</div>
+                    <div>
+                      <p className={`text-sm font-semibold ${consultForm.type_prise_en_charge === "hospitalisation" ? "text-orange-700" : "text-gray-700"}`}>Hospitalisation</p>
+                      <p className="text-xs text-gray-400">Admission en service</p>
+                    </div>
+                    {consultForm.type_prise_en_charge === "hospitalisation" && <span className="ml-auto text-orange-600">✓</span>}
+                  </button>
                 </div>
-              ))}
+              </div>
+
+              {consultForm.type_prise_en_charge === "hospitalisation" && (
+                <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+                  <label className="block text-xs font-semibold text-orange-700 uppercase tracking-wide mb-2">Service d'hospitalisation *</label>
+                  <select
+                    value={consultForm.service_hospitalisation}
+                    onChange={e => setConsultForm(f => ({ ...f, service_hospitalisation: e.target.value }))}
+                    className="input-field"
+                    required={consultForm.type_prise_en_charge === "hospitalisation"}
+                  >
+                    <option value="">-- Sélectionner le service --</option>
+                    <option value="Urgences médicales">Urgences médicales</option>
+                    <option value="Service de Médecine">Service de Médecine</option>
+                    <option value="Urgences pédiatriques">Urgences pédiatriques</option>
+                    <option value="Service de Chirurgie">Service de Chirurgie</option>
+                    <option value="Maternité">Maternité</option>
+                  </select>
+                </div>
+              )}
             </div>
           </div>
+
+          {consultForm.type_prise_en_charge === "ambulatoire" && (
+            <div className="card">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-gray-700 flex items-center gap-2">
+                  <span className="w-6 h-6 bg-primary-100 text-primary-700 rounded-full flex items-center justify-center text-xs font-bold">3</span>
+                  Prescriptions
+                </h3>
+                <button type="button" onClick={() => setConsultForm(f => ({ ...f, prescriptions: [...f.prescriptions, { medicament: "", posologie: "", duree: "" }] }))} className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">+ Ajouter</button>
+              </div>
+              <div className="space-y-2">
+                {consultForm.prescriptions.map((p, i) => (
+                  <div key={i} className="grid grid-cols-12 gap-2 items-center">
+                    <input type="text" value={p.medicament} onChange={e => { const a = [...consultForm.prescriptions]; a[i].medicament = e.target.value; setConsultForm(f => ({ ...f, prescriptions: a })); }} className="input-field col-span-4" placeholder="Médicament" />
+                    <input type="text" value={p.posologie} onChange={e => { const a = [...consultForm.prescriptions]; a[i].posologie = e.target.value; setConsultForm(f => ({ ...f, prescriptions: a })); }} className="input-field col-span-4" placeholder="Posologie" />
+                    <input type="text" value={p.duree} onChange={e => { const a = [...consultForm.prescriptions]; a[i].duree = e.target.value; setConsultForm(f => ({ ...f, prescriptions: a })); }} className="input-field col-span-3" placeholder="Durée" />
+                    {i > 0 && <button type="button" onClick={() => setConsultForm(f => ({ ...f, prescriptions: f.prescriptions.filter((_, j) => j !== i) }))} className="text-red-400 hover:text-red-600 col-span-1 text-center text-lg">×</button>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="card">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-gray-700 flex items-center gap-2">
-                <span className="w-6 h-6 bg-teal-100 text-teal-700 rounded-full flex items-center justify-center text-xs font-bold">4</span>
+                <span className="w-6 h-6 bg-teal-100 text-teal-700 rounded-full flex items-center justify-center text-xs font-bold">{consultForm.type_prise_en_charge === "ambulatoire" ? "4" : "3"}</span>
                 Examens demandés
               </h3>
               <button type="button" onClick={() => setConsultForm(f => ({ ...f, examens: [...f.examens, { type_examen: "", description: "" }] }))} className="text-sm text-teal-600 hover:text-teal-700 font-medium">+ Ajouter</button>
