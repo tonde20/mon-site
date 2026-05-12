@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import Link from "next/link";
+import LogoCMA from "@/app/components/LogoCMA";
 
 export default function HomePage() {
   const session = getSession();
@@ -49,10 +50,7 @@ export default function HomePage() {
       <nav className="relative z-10 flex items-center justify-between px-8 py-5 border-b border-white/5">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl overflow-hidden shadow-lg flex-shrink-0" style={{ background: "linear-gradient(135deg,#16a34a,#0d9488)" }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/images/logo-cma.png" alt="Logo CMA" className="w-full h-full object-cover"
-              onError={(e: any) => { e.currentTarget.style.display='none'; e.currentTarget.parentElement.innerHTML='<svg class=\'w-5 h-5 text-white m-auto\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'currentColor\'><path stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m5 0h4m-6-5h.01M13 16h.01\'/></svg>'; }}
-            />
+            <LogoCMA />
           </div>
           <span className="font-bold text-white/80 text-sm tracking-wide">{etablissement}</span>
         </div>
@@ -62,8 +60,7 @@ export default function HomePage() {
       <div className="relative z-10 text-center pt-16 pb-12 px-6">
         <div className="w-28 h-28 rounded-3xl overflow-hidden mb-6 shadow-2xl"
           style={{ boxShadow: "0 0 80px rgba(22,163,74,0.25),0 20px 40px rgba(0,0,0,0.5)" }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/logo-cma.png" alt="Logo CMA" className="w-full h-full object-cover"/>
+          <LogoCMA />
         </div>
         <h1 className="text-5xl md:text-6xl font-black tracking-tighter mb-3">
           <span style={{ backgroundImage: "linear-gradient(90deg,#4ade80,#2dd4bf,#60a5fa)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
