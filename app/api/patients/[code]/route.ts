@@ -12,7 +12,7 @@ export async function GET(_: NextRequest, { params }: { params: { code: string }
 
   const db = getDb();
   const patient = db.prepare(
-    'SELECT id, code, nom, prenom, date_naissance, sexe, telephone, adresse, created_at FROM patients WHERE code = ?'
+    'SELECT id, code, nom, prenom, date_naissance, sexe, telephone, adresse, decede, created_at FROM patients WHERE code = ?'
   ).get(params.code) as any;
 
   if (!patient) return NextResponse.json({ error: 'Patient non trouvé' }, { status: 404 });
@@ -53,5 +53,23 @@ export async function PUT(req: NextRequest, { params }: { params: { code: string
   const values = Object.keys(data).filter(k => allowed.includes(k)).map(k => data[k]);
   if (!fields) return NextResponse.json({ error: 'Aucune donnée à mettre à jour' }, { status: 400 });
   db.prepare(`UPDATE patients SET ${fields} WHERE code = ?`).run(...values, params.code);
+  return NextResponse.json({ success: true });
+}
+
+export async function DELETE(_: NextRequest, { params }: { params: { code: string } }) {
+  const session = getSession();
+  if (!session || session.role === 'patient') {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
+  }
+  const db = getDb();
+  const patient = db.prepare('SELECT id FROM patients WHERE code = ?').get(params.code) as any;
+  if (!patient) return NextResponse.json({ error: 'Patient non trouvé' }, { status: 404 });
+
+  db.prepare('DELETE FROM paiements WHERE patient_id = ?').run(patient.id);
+  db.prepare('DELETE FROM certificats WHERE patient_id = ?').run(patient.id);
+  db.prepare('DELETE FROM rendez_vous WHERE patient_id = ?').run(patient.id);
+  db.prepare('DELETE FROM consultations WHERE patient_id = ?').run(patient.id);
+  db.prepare('DELETE FROM patients WHERE id = ?').run(patient.id);
+
   return NextResponse.json({ success: true });
 }

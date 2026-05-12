@@ -142,6 +142,7 @@ function initSchema(db: any) {
 function runMigrations(db: any) {
   // Colonnes ajoutées après la création initiale de la DB
   try { db.exec("ALTER TABLE consultations ADD COLUMN taille TEXT"); } catch {}
+  try { db.exec("ALTER TABLE patients ADD COLUMN decede INTEGER DEFAULT 0"); } catch {}
 }
 
 function seedData(db: any) {

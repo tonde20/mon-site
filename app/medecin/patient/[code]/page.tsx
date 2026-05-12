@@ -13,7 +13,7 @@ interface Consultation {
 }
 interface Patient {
   id: number; code: string; nom: string; prenom: string; date_naissance: string;
-  sexe: string; telephone: string; adresse: string;
+  sexe: string; telephone: string; adresse: string; decede?: number;
 }
 
 function calcIMC(poids: string, taille: string): string | null {
@@ -61,6 +61,7 @@ export default function PatientDossierPage() {
   });
 
   const [rdvForm, setRdvForm] = useState({ doctor_id: "", date_heure: "", motif: "" });
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -153,8 +154,20 @@ export default function PatientDossierPage() {
         certificat: { type: certForm.type, contenu, date: new Date().toISOString(), doctor_prenom, doctor_nom },
       });
       setCertForm({ type: "Médical", contenu: "", nb_jours: "", date_debut: "", date_fin: "", date_deces: "", heure_deces: "", lieu_deces: "", cause_deces: "sa maladie", cause_autres: "" });
+      const updated = await fetch(`/api/patients/${code}`);
+      if (updated.ok) setData(await updated.json());
     } else {
       setMessage({ type: "error", text: "Erreur" });
+    }
+  };
+
+  const handleDeletePatient = async () => {
+    const res = await fetch(`/api/patients/${code}`, { method: "DELETE" });
+    if (res.ok) {
+      router.push("/medecin");
+    } else {
+      setMessage({ type: "error", text: "Erreur lors de la suppression" });
+      setConfirmDelete(false);
     }
   };
 
@@ -290,15 +303,41 @@ export default function PatientDossierPage() {
         </div>
       )}
 
+      {/* Modal confirmation suppression */}
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center text-red-600 text-xl">⚠️</div>
+              <h3 className="font-bold text-gray-800">Supprimer le dossier patient</h3>
+            </div>
+            <p className="text-gray-600 text-sm mb-2">Vous êtes sur le point de supprimer définitivement le dossier de :</p>
+            <p className="font-semibold text-gray-800 mb-4">{patient.prenom} {patient.nom} — <span className="font-mono text-red-600">{patient.code}</span></p>
+            <p className="text-xs text-red-600 bg-red-50 border border-red-200 px-3 py-2 rounded-lg mb-5">Cette action est irréversible. Toutes les consultations, certificats et rendez-vous associés seront supprimés.</p>
+            <div className="flex gap-3">
+              <button onClick={handleDeletePatient} className="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 rounded-lg transition-colors">Supprimer définitivement</button>
+              <button onClick={() => setConfirmDelete(false)} className="flex-1 btn-secondary">Annuler</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* En-tête patient */}
-      <div className="card mb-6 bg-gradient-to-r from-primary-50 to-teal-50 border-primary-100">
+      <div className={`card mb-6 border ${patient.decede ? "bg-gradient-to-r from-red-50 to-gray-50 border-red-200" : "bg-gradient-to-r from-primary-50 to-teal-50 border-primary-100"}`}>
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-primary-600 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-md">
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-md ${patient.decede ? "bg-gray-500" : "bg-primary-600"}`}>
               {patient.prenom.charAt(0)}{patient.nom.charAt(0)}
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-800">{patient.prenom} {patient.nom}</h1>
+              <div className="flex items-center gap-2">
+                <h1 className={`text-xl font-bold ${patient.decede ? "text-gray-500 line-through decoration-red-400" : "text-gray-800"}`}>{patient.prenom} {patient.nom}</h1>
+                {patient.decede === 1 && (
+                  <span className="inline-flex items-center gap-1 bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow">
+                    ✝ DÉCÉDÉ
+                  </span>
+                )}
+              </div>
               <div className="flex flex-wrap gap-2 mt-1 text-sm text-gray-500">
                 <span className="font-mono text-primary-700 font-semibold bg-primary-100 px-2 py-0.5 rounded">{patient.code}</span>
                 {age && <span className="bg-white px-2 py-0.5 rounded border border-gray-200">{age} ans</span>}
@@ -307,7 +346,18 @@ export default function PatientDossierPage() {
               </div>
             </div>
           </div>
-          <button onClick={() => router.push("/medecin")} className="btn-secondary text-sm">← Retour</button>
+          <div className="flex items-center gap-2">
+            {patient.decede === 1 && (
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors shadow-sm"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                Supprimer le dossier
+              </button>
+            )}
+            <button onClick={() => router.push("/medecin")} className="btn-secondary text-sm">← Retour</button>
+          </div>
         </div>
       </div>
 

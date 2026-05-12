@@ -11,6 +11,7 @@ interface Patient {
   sexe: string;
   telephone: string;
   adresse: string;
+  decede?: number;
 }
 
 export default function PatientsPage() {
@@ -49,7 +50,12 @@ export default function PatientsPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Patients</h1>
-          <p className="text-gray-500 text-sm mt-1">{patients.length} patient(s) trouvé(s)</p>
+          <p className="text-gray-500 text-sm mt-1">
+            {patients.filter(p => !p.decede).length} patient(s) actif(s)
+            {patients.filter(p => p.decede).length > 0 && (
+              <span className="ml-2 text-red-500 font-medium">· {patients.filter(p => p.decede).length} décédé(s)</span>
+            )}
+          </p>
         </div>
         <button onClick={() => setShowForm(true)} className="btn-primary flex items-center gap-2">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
@@ -133,9 +139,16 @@ export default function PatientsPage() {
               </thead>
               <tbody>
                 {patients.map(p => (
-                  <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50">
+                  <tr key={p.id} className={`border-b hover:bg-gray-50 ${p.decede ? "bg-red-50/40 border-red-100" : "border-gray-50"}`}>
                     <td className="py-3 px-3 font-mono text-xs text-primary-700">{p.code}</td>
-                    <td className="py-3 px-3 font-medium">{p.prenom} {p.nom}</td>
+                    <td className="py-3 px-3 font-medium">
+                      <span className={p.decede ? "text-gray-400 line-through decoration-red-400" : ""}>{p.prenom} {p.nom}</span>
+                      {p.decede === 1 && (
+                        <span className="ml-2 inline-flex items-center gap-0.5 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
+                          ✝ DCD
+                        </span>
+                      )}
+                    </td>
                     <td className="py-3 px-3 text-gray-500">{p.date_naissance ? new Date(p.date_naissance).toLocaleDateString("fr-FR") : "—"}</td>
                     <td className="py-3 px-3 text-gray-500">{p.sexe === "M" ? "Masc." : "Fém."}</td>
                     <td className="py-3 px-3 text-gray-500">{p.telephone || "—"}</td>

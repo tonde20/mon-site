@@ -14,11 +14,11 @@ export async function GET(req: NextRequest) {
   let patients;
   if (search) {
     patients = db.prepare(
-      "SELECT id, code, nom, prenom, date_naissance, sexe, telephone, adresse, created_at FROM patients WHERE nom LIKE ? OR prenom LIKE ? OR code LIKE ? ORDER BY nom LIMIT 50"
+      "SELECT id, code, nom, prenom, date_naissance, sexe, telephone, adresse, decede, created_at FROM patients WHERE nom LIKE ? OR prenom LIKE ? OR code LIKE ? ORDER BY decede ASC, nom ASC LIMIT 50"
     ).all(`%${search}%`, `%${search}%`, `%${search}%`);
   } else {
     patients = db.prepare(
-      "SELECT id, code, nom, prenom, date_naissance, sexe, telephone, adresse, created_at FROM patients ORDER BY nom LIMIT 100"
+      "SELECT id, code, nom, prenom, date_naissance, sexe, telephone, adresse, decede, created_at FROM patients ORDER BY decede ASC, nom ASC LIMIT 100"
     ).all();
   }
   return NextResponse.json(patients);

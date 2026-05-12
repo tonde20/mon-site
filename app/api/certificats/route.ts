@@ -20,6 +20,10 @@ export async function POST(req: NextRequest) {
 
   db.prepare('INSERT INTO paiements (patient_id, type, reference_id, montant) VALUES (?, ?, ?, ?)').run(patient_id, 'certificat', result.lastInsertRowid, montant);
 
+  if (type === 'Décès') {
+    db.prepare('UPDATE patients SET decede = 1 WHERE id = ?').run(patient_id);
+  }
+
   return NextResponse.json({ id: result.lastInsertRowid, success: true });
 }
 
