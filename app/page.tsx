@@ -55,9 +55,6 @@ export default function HomePage() {
           </div>
           <span className="font-bold text-white/80 text-sm tracking-wide">{etablissement}</span>
         </div>
-        <Link href="/login" className="text-sm text-white/50 hover:text-white/80 transition-colors px-4 py-2 rounded-lg hover:bg-white/5">
-          Connexion classique
-        </Link>
       </nav>
 
       {/* Hero */}
@@ -92,19 +89,11 @@ export default function HomePage() {
             <div className="w-20 h-px mx-auto" style={{ background: "linear-gradient(90deg,transparent,rgba(74,222,128,0.4),transparent)" }} />
           </div>
 
-          <blockquote className="text-white/55 text-sm leading-[1.85] italic text-center mt-5 space-y-3">
-            <p>
-              « Au moment d'être admis à exercer la médecine, je promets et je jure d'être fidèle aux lois de l'honneur et de la probité. Mon premier souci sera de rétablir, de préserver ou de promouvoir la santé dans tous ses éléments, physiques et mentaux, individuels et sociaux.
-            </p>
-            <p>
-              Je respecterai toutes les personnes, leur autonomie et leur volonté, sans aucune discrimination. J'interviendrai pour les protéger si elles sont affaiblies, vulnérables ou menacées dans leur intégrité ou leur dignité.
-            </p>
-            <p>
-              Je ne ferai jamais usage de mes connaissances contre les lois de l'humanité. Je ferai tout pour soulager les souffrances. Je ne prolongerai pas abusivement les agonies. Je ne provoquerai jamais la mort délibérément.
-            </p>
-            <p className="text-white/70 font-medium not-italic">
-              Que les hommes et mes confrères m'accordent leur estime si je suis fidèle à mes promesses ; que je sois déshonoré et méprisé si j'y manque. »
-            </p>
+          <blockquote className="text-white/65 text-base leading-[2] italic text-center mt-5">
+            « Je ne ferai jamais usage de mes connaissances contre les lois de l'humanité.
+            Je ferai tout pour soulager les souffrances.
+            Je ne prolongerai pas abusivement les agonies.
+            Je ne provoquerai jamais la mort délibérément. »
           </blockquote>
         </div>
       </div>
